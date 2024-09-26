@@ -25,6 +25,14 @@ services:
     volumes:
       - postgresdata:/var/lib/postgresql/data/
 
+  migrate:
+    image: migrate/migrate
+    entrypoint: ["/bin/sh", "-c", "migrate -path /migrations -database postgres://$DB_USER:$DB_PASS@postgres:5432/$DB_NAME?sslmode=disable up"]
+    volumes:
+      - ./migrations:/migrations
+    depends_on:
+      - postgres
+
   nginx:
     image: nginx:stable-alpine3.17-slim
     depends_on:
