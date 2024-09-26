@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 
@@ -11,17 +10,16 @@ import (
 	"github.com/goGo-service/back/pkg/service"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
-	// "github.com/spf13/viper"
+	"github.com/spf13/viper"
 )
 
 func main() {
-	// if err := initConfig(); err != nil {
-	// 	log.Fatalf("error initializing configs: %s", err.Error())
-	// }
+	if err := initConfig(); err != nil {
+		log.Fatalf("error initializing configs: %s", err.Error())
+	}
 	if err := godotenv.Load(); err != nil {
 		log.Fatalf("error loading env variables: %s", err.Error())
 	}
-	fmt.Println(os.Getenv("DB_USERNAME"))
 
 	db, err := repository.NewPostgresDB(repository.Config{
 		Host:     os.Getenv("DB_HOST"),
@@ -40,12 +38,16 @@ func main() {
 	handlers := handler.NewHandler(services)
 
 	srv := new(goGO.Server)
-	if err := srv.Run(os.Getenv("PORT"), handlers.InitRoutes()); err != nil {
-		log.Panic()
+
+	if err := srv.Run(viper.GetString("port"), handlers.InitRoutes()); err != nil {
+		log.Fatalf("error occured while running http server: %s", err.Error())
 	}
+
+	log.Print("goGO started")
 }
 
-// func initConfig() error {
-// 	viper.SetConfigName(".env")
-// 	return viper.ReadInConfig()
-// }
+func initConfig() error {
+	viper.AddConfigPath("configs")
+	viper.SetConfigName("config")
+	return viper.ReadInConfig()
+}
