@@ -11,6 +11,26 @@
     }
   ],
   "paths": {
+    "/auth/token/refresh": {
+      "get": {
+        "description": "Обмен refresh токена на новую пару Access token Refresh Token",
+        "responses": {
+          "403": {
+            "description": "Неверный Refresh Token или он устарел"
+          },
+          "200": {
+            "description": "Успешный обмен",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Auth"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/auth": {
       "post": {
         "summary": "Авторизация или регистрация",
@@ -30,7 +50,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/BadRequestResponse"
+                  "$ref": "#/components/schemas/BadRequestError"
                 }
               }
             }
@@ -40,7 +60,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AuthNeedRegistrationResponse"
+                  "$ref": "#/components/schemas/AuthNeedRegistration"
                 }
               }
             }
@@ -50,7 +70,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AuthResponse"
+                  "$ref": "#/components/schemas/Auth"
                 }
               }
             }
@@ -76,7 +96,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AuthResponse"
+                  "$ref": "#/components/schemas/Auth"
                 }
               }
             }
@@ -86,7 +106,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/BadRequestResponse"
+                  "$ref": "#/components/schemas/BadRequestError"
                 }
               }
             }
@@ -96,6 +116,11 @@
     }
   },
   "components": {
+    "responses": {
+      "Unauthorized": {
+        "description": "Передан неверный Access Token или он устарен"
+      }
+    },
     "schemas": {
       "AuthRequestBody": {
         "type": "object",
@@ -130,7 +155,7 @@
           "username"
         ]
       },
-      "BadRequestResponse": {
+      "BadRequestError": {
         "description": "Некорректные параметры запроса",
         "type": "object",
         "properties": {
@@ -140,7 +165,7 @@
           }
         }
       },
-      "AuthResponse": {
+      "Auth": {
         "type": "object",
         "properties": {
           "action": {
@@ -160,7 +185,7 @@
           "access_token"
         ]
       },
-      "AuthNeedRegistrationResponse": {
+      "AuthNeedRegistration": {
         "type": "object",
         "properties": {
           "action": {
