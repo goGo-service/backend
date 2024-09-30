@@ -7,31 +7,11 @@
   },
   "servers": [
     {
-      "url": "http://localhost:8000/api/v1"
+      "url": "http://localhost:8000/api/v1/auth"
     }
   ],
   "paths": {
-    "/auth/token/refresh": {
-      "get": {
-        "description": "Обмен refresh токена на новую пару Access token Refresh Token",
-        "responses": {
-          "403": {
-            "description": "Неверный Refresh Token или он устарел"
-          },
-          "200": {
-            "description": "Успешный обмен",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Auth"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/auth": {
+    "/sign-in": {
       "post": {
         "summary": "Авторизация или регистрация",
         "operationId": "auth",
@@ -78,7 +58,7 @@
         }
       }
     },
-    "/auth/sign-in": {
+    "/sign-up": {
       "post": {
         "description": "Регистрация",
         "requestBody": {
@@ -110,6 +90,36 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/token/refresh": {
+      "get": {
+        "description": "Обмен refresh токена на новую пару Access token Refresh Token",
+        "responses": {
+          "403": {
+            "description": "Неверный Refresh Token или он устарел"
+          },
+          "200": {
+            "description": "Успешный обмен",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Auth"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/logout": {
+      "get": {
+        "description": "Удаление refresh токена из куки и инвалидация Access token",
+        "responses": {
+          "200": {
+            "description": "Токен удален"
           }
         }
       }
