@@ -182,7 +182,7 @@
             "description": "Действие авторизации",
             "type": "string",
             "enum": [
-              "AUTH"
+              "auth"
             ]
           },
           "access_token": {
@@ -202,7 +202,7 @@
             "description": "Действие регистрации",
             "type": "string",
             "enum": [
-              "REGISTER"
+              "register"
             ]
           },
           "email": {
