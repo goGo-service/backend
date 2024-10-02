@@ -25,6 +25,7 @@ func (h *Handler) InitRoutes() *gin.Engine {
 		MaxAge:           12 * time.Hour,
 		AllowCredentials: true,
 	}))
+
 	auth := router.Group("/auth")
 	{
 		auth.POST("/sign-up", h.signUp)
@@ -43,6 +44,9 @@ func (h *Handler) InitRoutes() *gin.Engine {
 			"email":      "dvbvladis@mail.ru",
 		})
 	})
+
+	router.GET("/login", h.vkAuthHandler)
+	router.GET("/callback", h.callbackHandler)
 
 	return router
 }

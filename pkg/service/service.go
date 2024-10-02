@@ -11,10 +11,12 @@ type Authorization interface {
 
 type Service struct {
 	Authorization
+	VKAuth *AuthService
 }
 
 func NewService(repos *repository.Repository) *Service {
 	return &Service{
 		Authorization: NewAuthService(repos.Authorization),
+		VKAuth:        NewAuthService(repos.Authorization),
 	}
 }
