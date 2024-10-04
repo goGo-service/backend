@@ -1,14 +1,19 @@
 package main
 
 import (
+	"fmt"
 	goGO "github.com/goGo-service/back"
 	"github.com/goGo-service/back/pkg/handler"
 	"github.com/goGo-service/back/pkg/repository"
+	"github.com/goGo-service/back/pkg/repository/cache"
 	"github.com/goGo-service/back/pkg/service"
+	"github.com/jmoiron/sqlx"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"log"
+	"os"
 )
 
 // @title goGO
@@ -23,6 +28,14 @@ import (
 // @name Authorization
 
 func main() {
+	//ctx := context.Background()
+
+	redisClient, err := cache.NewRedisDB()
+	if err != nil {
+		log.Fatalf("Could not connect to Redis: %v", err)
+	}
+	defer redisClient.Close()
+
 	logrus.SetFormatter(new(logrus.JSONFormatter))
 	if err := initConfig(); err != nil {
 		logrus.Fatalf("error initializing configs: %s", err.Error())
@@ -55,6 +68,38 @@ func main() {
 	}
 
 	logrus.Print("goGO started")
+}
+
+const (
+	vkIdUsersTable  = "vk_id_users"
+	UsersTable      = "users"
+	roomsTable      = "rooms"
+	rolesTable      = "roles"
+	roomsUsersTable = "rooms_users"
+)
+
+type Config struct {
+	Host     string
+	Port     string
+	Username string
+	Password string
+	DBName   string
+	SSLMode  string
+}
+
+func NewPostgresDB(cfg Config) (*sqlx.DB, error) {
+	db, err := sqlx.Open("postgres", fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=%s",
+		cfg.Host, cfg.Port, cfg.Username, cfg.DBName, cfg.Password, cfg.SSLMode))
+	if err != nil {
+		return nil, fmt.Errorf("failed to open database: %w", err)
+	}
+
+	err = db.Ping()
+	if err != nil {
+		return nil, fmt.Errorf("failed to ping database: %w", err)
+	}
+
+	return db, nil
 }
 
 func initConfig() error {
