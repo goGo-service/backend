@@ -3,10 +3,10 @@ package main
 import (
 	"fmt"
 	goGO "github.com/goGo-service/back"
-	"github.com/goGo-service/back/pkg/handler"
-	"github.com/goGo-service/back/pkg/repository"
-	"github.com/goGo-service/back/pkg/repository/cache"
-	"github.com/goGo-service/back/pkg/service"
+	"github.com/goGo-service/back/internal/handler"
+	"github.com/goGo-service/back/internal/repository"
+	"github.com/goGo-service/back/internal/repository/cache"
+	"github.com/goGo-service/back/internal/service"
 	"github.com/jmoiron/sqlx"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
@@ -28,8 +28,6 @@ import (
 // @name Authorization
 
 func main() {
-	//ctx := context.Background()
-
 	redisClient, err := cache.NewRedisDB()
 	if err != nil {
 		log.Fatalf("Could not connect to Redis: %v", err)
@@ -69,14 +67,6 @@ func main() {
 
 	logrus.Print("goGO started")
 }
-
-const (
-	vkIdUsersTable  = "vk_id_users"
-	UsersTable      = "users"
-	roomsTable      = "rooms"
-	rolesTable      = "roles"
-	roomsUsersTable = "rooms_users"
-)
 
 type Config struct {
 	Host     string

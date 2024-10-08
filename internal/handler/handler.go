@@ -3,7 +3,7 @@ package handler
 import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/goGo-service/back/pkg/service"
+	"github.com/goGo-service/back/internal/service"
 	"time"
 )
 

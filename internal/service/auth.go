@@ -3,7 +3,7 @@ package service
 import (
 	"fmt"
 	goGO "github.com/goGo-service/back"
-	"github.com/goGo-service/back/pkg/repository"
+	"github.com/goGo-service/back/internal/repository"
 	"github.com/goccy/go-json"
 	"io/ioutil"
 	"net/http"

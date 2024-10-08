@@ -2,13 +2,11 @@ package user
 
 import (
 	"fmt"
-
 	goGO "github.com/goGo-service/back"
+	"github.com/goGo-service/back/internal"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 )
-
-const UsersTable = "users"
 
 type AuthPostgres struct {
 	db *sqlx.DB
