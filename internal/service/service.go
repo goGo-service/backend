@@ -2,7 +2,7 @@ package service
 
 import (
 	goGO "github.com/goGo-service/back"
-	"github.com/goGo-service/back/pkg/repository"
+	"github.com/goGo-service/back/internal/repository"
 )
 
 type Authorization interface {

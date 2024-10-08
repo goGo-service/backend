@@ -2,6 +2,7 @@ package repository
 
 import (
 	goGO "github.com/goGo-service/back"
+	"github.com/goGo-service/back/internal/repository/user"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -16,6 +17,6 @@ type Repository struct {
 
 func NewRepository(db *sqlx.DB) *Repository {
 	return &Repository{
-		Authorization: NewAuthPostgres(db),
+		Authorization: user.NewAuthPostgres(db),
 	}
 }

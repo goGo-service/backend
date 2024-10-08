@@ -1,14 +1,18 @@
 package main
 
 import (
+	"fmt"
 	goGO "github.com/goGo-service/back"
-	"github.com/goGo-service/back/pkg/handler"
-	"github.com/goGo-service/back/pkg/repository"
-	"github.com/goGo-service/back/pkg/service"
+	"github.com/goGo-service/back/internal/handler"
+	"github.com/goGo-service/back/internal/repository"
+	"github.com/goGo-service/back/internal/repository/cache"
+	"github.com/goGo-service/back/internal/service"
+	"github.com/jmoiron/sqlx"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"log"
 )
 
 // @title goGO
@@ -32,7 +36,7 @@ func main() {
 		logrus.Fatalf("error loading env variables: %s", err.Error())
 	}
 
-	db, err := repository.NewPostgresDB(repository.Config{
+	db, err := NewPostgresDB(Config{
 		Host:     viper.GetString("DB_HOST"),
 		Port:     viper.GetString("DB_PORT"),
 		Username: viper.GetString("DB_USER"),
@@ -54,7 +58,39 @@ func main() {
 		logrus.Fatalf("error occured while running http server: %s", err.Error())
 	}
 
+	redisClient, err := cache.NewRedisDB()
+	if err != nil {
+		log.Fatalf("could not connect to Redis: %v", err)
+	}
+	if err := redisClient.Close(); err != nil {
+		log.Printf("error closing Redis client: %v", err)
+	}
+
 	logrus.Print("goGO started")
+}
+
+type Config struct {
+	Host     string
+	Port     string
+	Username string
+	Password string
+	DBName   string
+	SSLMode  string
+}
+
+func NewPostgresDB(cfg Config) (*sqlx.DB, error) {
+	db, err := sqlx.Open("postgres", fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=%s",
+		cfg.Host, cfg.Port, cfg.Username, cfg.DBName, cfg.Password, cfg.SSLMode))
+	if err != nil {
+		return nil, fmt.Errorf("failed to open database: %w", err)
+	}
+
+	err = db.Ping()
+	if err != nil {
+		return nil, fmt.Errorf("failed to ping database: %w", err)
+	}
+
+	return db, nil
 }
 
 func initConfig() error {
