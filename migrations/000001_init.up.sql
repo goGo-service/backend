@@ -1,18 +1,11 @@
-CREATE TABLE vkid_users
-(
-    user_id       bigint            NOT NULL PRIMARY KEY,
-    access_token  varchar(255)      NOT NULL UNIQUE
-);
-
 CREATE TABLE users
 (
     id            serial            NOT NULL PRIMARY KEY,
-    vk_id         bigint        NOT NULL UNIQUE,
+    vk_id         bigint            NOT NULL UNIQUE,
     first_name    varchar(255)      NOT NULL,
     last_name     varchar(255)      NOT NULL,
-    username      varchar(255)      NOT NULL UNIQUE,
-    email         varchar(255)      NOT NULL UNIQUE,
-    CONSTRAINT fk_vkid_users FOREIGN KEY (vk_id) REFERENCES vkid_users(user_id) ON DELETE CASCADE
+    username      varchar(255)      NOT NULL,
+    email         varchar(255)      NOT NULL UNIQUE
 );
 
 CREATE TABLE rooms
@@ -23,7 +16,7 @@ CREATE TABLE rooms
 
 CREATE TABLE roles
 (
-    id            int               NOT NULL PRIMARY KEY,
+    id            serial            NOT NULL PRIMARY KEY,
     role_name     varchar(255)      NOT NULL
 );
 

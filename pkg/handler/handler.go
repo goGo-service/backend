@@ -33,9 +33,11 @@ func (h *Handler) InitRoutes() *gin.Engine {
 		auth.GET("/logout", func(c *gin.Context) {
 			c.JSON(200, "")
 		})
+		auth.GET("/redirect-url", h.redirectUrl)
 	}
 
 	router.GET("/profile", func(c *gin.Context) {
+		//TODO: доставать из AT юзера и отдавать клиенту
 		c.JSON(200, gin.H{
 			"id":         1337,
 			"username":   "screxy",
@@ -44,9 +46,6 @@ func (h *Handler) InitRoutes() *gin.Engine {
 			"email":      "dvbvladis@mail.ru",
 		})
 	})
-
-	router.GET("/login", h.vkAuthHandler)
-	router.GET("/callback", h.callbackHandler)
 
 	return router
 }

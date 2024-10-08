@@ -11,7 +11,7 @@ import (
 
 const (
 	apiURL     = "https://api.vk.com/method/users.get"
-	apiVersion = "5.131"
+	apiVersion = "5.199"
 )
 
 type UserResponse struct {
@@ -19,6 +19,7 @@ type UserResponse struct {
 		ID        int    `json:"id"`
 		FirstName string `json:"first_name"`
 		LastName  string `json:"last_name"`
+		Email     string `json:"email"`
 	} `json:"response"`
 }
 
@@ -53,4 +54,8 @@ func (s *AuthService) GetUserInfo(accessToken string) (*UserResponse, error) {
 	}
 
 	return &userResp, nil
+}
+
+func (s *AuthService) GetUserByVkId(vkId int64) (*goGO.User, error) {
+	return s.repo.GetUserByVkId(vkId)
 }

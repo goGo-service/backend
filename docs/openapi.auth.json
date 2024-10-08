@@ -1,231 +1,284 @@
-  {
-    "openapi": "3.0.3",
-    "info": {
-      "title": "goGO Auth handlers",
-      "description": "goGo docs",
-      "version": "1.0.0"
-    },
-    "servers": [
-      {
-        "url": "http://localhost:8000/api/v1/auth"
-      }
-    ],
-    "paths": {
-      "/sign-in": {
-        "post": {
-          "summary": "Авторизация или регистрация",
-          "operationId": "auth",
-          "requestBody": {
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "goGO Auth handlers",
+    "description": "goGo docs",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8000/api/v1/auth"
+    }
+  ],
+  "paths": {
+    "/redirect-url": {
+      "get": {
+        "description": "Получения state, code_verifier для передачи во vkid",
+        "responses": {
+          "200": {
+            "description": "New response",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AuthRequestBody"
+                  "$ref": "#/components/schemas/RedirectUrl"
                 }
               }
-            }
-          },
-          "responses": {
-            "400": {
-              "description": "Передан неверный silent_token VK ID",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "$ref": "#/components/schemas/BadRequestError"
-                  }
-                }
-              }
-            },
-            "201": {
-              "description": "Ответ на запрос авторизации нового пользователя",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "$ref": "#/components/schemas/AuthNeedRegistration"
-                  }
-                }
-              }
-            },
-            "200": {
-              "description": "Ответ на запрос авторизации",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "$ref": "#/components/schemas/Auth"
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "/sign-up": {
-        "post": {
-          "description": "Регистрация",
-          "requestBody": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SignUpRequestBody"
-                }
-              }
-            }
-          },
-          "responses": {
-            "200": {
-              "description": "Пользователь успешно зарегистрирован",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "$ref": "#/components/schemas/Auth"
-                  }
-                }
-              }
-            },
-            "400": {
-              "description": "Передан неверный silent_token VK ID",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "$ref": "#/components/schemas/BadRequestError"
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "/token/refresh": {
-        "get": {
-          "description": "Обмен refresh токена на новую пару Access token Refresh Token",
-          "responses": {
-            "403": {
-              "description": "Неверный Refresh Token или он устарел"
-            },
-            "200": {
-              "description": "Успешный обмен",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "$ref": "#/components/schemas/Auth"
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "/logout": {
-        "get": {
-          "description": "Удаление refresh токена из куки и инвалидация Access token",
-          "responses": {
-            "200": {
-              "description": "Токен удален"
             }
           }
         }
       }
     },
-    "components": {
-      "responses": {
-        "Unauthorized": {
-          "description": "Передан неверный Access Token или он устарен"
+    "/sign-in": {
+      "post": {
+        "summary": "Авторизация или регистрация",
+        "operationId": "auth",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthRequestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "400": {
+            "description": "Передан неверный silent_token VK ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Ответ на запрос авторизации нового пользователя",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthNeedRegistration"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Ответ на запрос авторизации",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Auth"
+                }
+              }
+            }
+          }
         }
-      },
-      "schemas": {
-        "AuthRequestBody": {
-          "type": "object",
-          "properties": {
-            "code": {
-              "type": "string",
-              "required": true
+      }
+    },
+    "/sign-up": {
+      "post": {
+        "description": "Регистрация",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignUpRequestBody"
+              }
             }
           }
         },
-        "SignUpRequestBody": {
-          "description": "New schema",
-          "type": "object",
-          "properties": {
-            "code": {
-              "type": "string"
-            },
-            "first_name": {
-              "type": "string"
-            },
-            "last_name": {
-              "type": "string"
-            },
-            "username": {
-              "type": "string"
+        "responses": {
+          "200": {
+            "description": "Пользователь успешно зарегистрирован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Auth"
+                }
+              }
             }
           },
-          "required": [
-            "first_name",
-            "last_name",
-            "code",
-            "username"
-          ]
-        },
-        "BadRequestError": {
-          "description": "Некорректные параметры запроса",
-          "type": "object",
-          "properties": {
-            "error_text": {
-              "type": "string",
-              "required": true
+          "400": {
+            "description": "Передан неверный silent_token VK ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
             }
           }
-        },
-        "Auth": {
-          "type": "object",
-          "properties": {
-            "action": {
-              "description": "Действие авторизации",
-              "type": "string",
-              "enum": [
-                "auth"
-              ]
-            },
-            "access_token": {
-              "description": "Токен доступа",
-              "type": "string"
-            }
+        }
+      }
+    },
+    "/token/refresh": {
+      "get": {
+        "description": "Обмен refresh токена на новую пару Access token Refresh Token",
+        "responses": {
+          "403": {
+            "description": "Неверный Refresh Token или он устарел"
           },
-          "required": [
-            "action",
-            "access_token"
-          ]
-        },
-        "AuthNeedRegistration": {
-          "type": "object",
-          "properties": {
-            "action": {
-              "description": "Действие регистрации",
-              "type": "string",
-              "enum": [
-                "register"
-              ]
-            },
-            "email": {
-              "description": "Электронная почта пользователя",
-              "type": "string",
-              "format": "email"
-            },
-            "first_name": {
-              "description": "Имя пользователя",
-              "type": "string"
-            },
-            "last_name": {
-              "description": "Фамилия пользователя",
-              "type": "string"
+          "200": {
+            "description": "Успешный обмен",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Auth"
+                }
+              }
             }
-          },
-          "required": [
-            "action",
-            "first_name",
-            "last_name",
-            "email"
-          ]
+          }
+        }
+      }
+    },
+    "/logout": {
+      "get": {
+        "description": "Удаление refresh токена из куки и инвалидация Access token",
+        "responses": {
+          "200": {
+            "description": "Токен удален"
+          }
         }
       }
     }
+  },
+  "components": {
+    "responses": {
+      "Unauthorized": {
+        "description": "Передан неверный Access Token или он устарен"
+      }
+    },
+    "schemas": {
+      "RedirectUrl": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string"
+          },
+          "redirect_url": {
+            "type": "string"
+          },
+          "code_challenge": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "app_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "state",
+          "redirect_url",
+          "code_challenge",
+          "scope",
+          "app_id"
+        ]
+      },
+      "AuthRequestBody": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string"
+          },
+          "device_id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "state",
+          "device_id",
+          "code"
+        ]
+      },
+      "SignUpRequestBody": {
+        "description": "New schema",
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "first_name": {
+            "type": "string"
+          },
+          "last_name": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name",
+          "code",
+          "username"
+        ]
+      },
+      "BadRequestError": {
+        "description": "Некорректные параметры запроса",
+        "type": "object",
+        "properties": {
+          "error_text": {
+            "type": "string",
+            "required": true
+          }
+        }
+      },
+      "Auth": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "description": "Действие авторизации",
+            "type": "string",
+            "enum": [
+              "auth"
+            ]
+          },
+          "access_token": {
+            "description": "Токен доступа",
+            "type": "string"
+          }
+        },
+        "required": [
+          "action",
+          "access_token"
+        ]
+      },
+      "AuthNeedRegistration": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "description": "Действие регистрации",
+            "type": "string",
+            "enum": [
+              "register"
+            ]
+          },
+          "email": {
+            "description": "Электронная почта пользователя",
+            "type": "string",
+            "format": "email"
+          },
+          "first_name": {
+            "description": "Имя пользователя",
+            "type": "string"
+          },
+          "last_name": {
+            "description": "Фамилия пользователя",
+            "type": "string"
+          }
+        },
+        "required": [
+          "action",
+          "first_name",
+          "last_name"
+        ]
+      }
+    }
   }
+}

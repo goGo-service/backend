@@ -7,6 +7,7 @@ import (
 
 type Authorization interface {
 	CreateUser(user goGO.User) (int, error)
+	GetUserByVkId(vkId int64) (*goGO.User, error)
 }
 
 type Service struct {
