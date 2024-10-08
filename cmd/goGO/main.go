@@ -13,7 +13,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"log"
-	"os"
 )
 
 // @title goGO
@@ -28,12 +27,6 @@ import (
 // @name Authorization
 
 func main() {
-	redisClient, err := cache.NewRedisDB()
-	if err != nil {
-		log.Fatalf("Could not connect to Redis: %v", err)
-	}
-	defer redisClient.Close()
-
 	logrus.SetFormatter(new(logrus.JSONFormatter))
 	if err := initConfig(); err != nil {
 		logrus.Fatalf("error initializing configs: %s", err.Error())
@@ -43,7 +36,7 @@ func main() {
 		logrus.Fatalf("error loading env variables: %s", err.Error())
 	}
 
-	db, err := repository.NewPostgresDB(repository.Config{
+	db, err := NewPostgresDB(Config{
 		Host:     viper.GetString("DB_HOST"),
 		Port:     viper.GetString("DB_PORT"),
 		Username: viper.GetString("DB_USER"),
@@ -63,6 +56,14 @@ func main() {
 
 	if err := srv.Run(viper.GetString("HOST_PORT"), handlers.InitRoutes()); err != nil {
 		logrus.Fatalf("error occured while running http server: %s", err.Error())
+	}
+
+	redisClient, err := cache.NewRedisDB()
+	if err != nil {
+		log.Fatalf("could not connect to Redis: %v", err)
+	}
+	if err := redisClient.Close(); err != nil {
+		log.Printf("error closing Redis client: %v", err)
 	}
 
 	logrus.Print("goGO started")
