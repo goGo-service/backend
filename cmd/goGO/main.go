@@ -48,22 +48,23 @@ func main() {
 		logrus.Fatalf("failed to initialize db: %s", err.Error())
 	}
 
-	repos := repository.NewRepository(db)
-	services := service.NewService(repos)
-	handlers := handler.NewHandler(services)
-
-	srv := new(goGO.Server)
-
-	if err := srv.Run(viper.GetString("HOST_PORT"), handlers.InitRoutes()); err != nil {
-		logrus.Fatalf("error occured while running http server: %s", err.Error())
-	}
-
 	redisClient, err := cache.NewRedisDB()
 	if err != nil {
 		log.Fatalf("could not connect to Redis: %v", err)
 	}
-	if err := redisClient.Close(); err != nil {
-		log.Printf("error closing Redis client: %v", err)
+	defer func() {
+		if err := redisClient.Close(); err != nil {
+			log.Printf("error closing Redis client: %v", err)
+		}
+	}()
+
+	repos := repository.NewRepository(db)
+	services := service.NewService(repos)
+	handlers := handler.NewHandler(services, redisClient)
+	srv := new(goGO.Server)
+
+	if err := srv.Run(viper.GetString("HOST_PORT"), handlers.InitRoutes()); err != nil {
+		logrus.Fatalf("error occured while running http server: %s", err.Error())
 	}
 
 	logrus.Print("goGO started")

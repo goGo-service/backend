@@ -4,15 +4,20 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/goGo-service/back/internal/service"
+	"github.com/redis/go-redis/v9"
 	"time"
 )
 
 type Handler struct {
-	services *service.Service
+	services    *service.Service
+	RedisClient *redis.Client
 }
 
-func NewHandler(services *service.Service) *Handler {
-	return &Handler{services: services}
+func NewHandler(services *service.Service, redisClient *redis.Client) *Handler {
+	return &Handler{
+		services:    services,
+		RedisClient: redisClient,
+	}
 }
 
 func (h *Handler) InitRoutes() *gin.Engine {

@@ -10,7 +10,9 @@ import (
 	"github.com/goccy/go-json"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"golang.org/x/net/context"
 	"io"
+	"log"
 	"net/http"
 	"time"
 
@@ -89,18 +91,24 @@ func randomBytesInHex(count int) (string, error) {
 func (h *Handler) redirectUrl(c *gin.Context) {
 	redirectUrl := viper.GetString("VKID_REDIRECT_URL")
 	appId := viper.GetString("VKID_APP_ID")
-	//TODO: сохранять codeVerifier в кеш, где ключем будет state значением codeVerifier
-	//codeVerifier, _ := randomBytesInHex(32)
-	codeVerifier := "39365705206a4290cbf6b5aa1561ba8ab404b58df73ec30aceb823831dae38c7"
+	//TODO: сохранять codeVerifier в кеш, где ключем будет state значением codeVerifier. +
+	codeVerifier, _ := randomBytesInHex(32)
+	//codeVerifier := "39365705206a4290cbf6b5aa1561ba8ab404b58df73ec30aceb823831dae38c7"
 	sha2 := sha256.New()
-	fmt.Println(codeVerifier)
+
 	_, err := io.WriteString(sha2, codeVerifier)
 	if err != nil {
 		return
 	}
 	codeChallenge := base64.RawURLEncoding.EncodeToString(sha2.Sum(nil))
-	//state, _ := randomBytesInHex(24)
-	state := "9c00694677f5056d8060e6c43f847eda3bf08ba64a94827f"
+	state, _ := randomBytesInHex(24)
+	//state := "9c00694677f5056d8060e6c43f847eda3bf08ba64a94827f"
+
+	err = h.RedisClient.Set(context.Background(), state, codeVerifier, 10&time.Minute).Err()
+	if err != nil {
+		c.JSON(500, gin.H{"error": "failed to save codeVerifier in cache"})
+	}
+
 	scope := "email"
 	c.JSON(200, gin.H{
 		"app_id":         appId,
@@ -113,6 +121,7 @@ func (h *Handler) redirectUrl(c *gin.Context) {
 
 func (h *Handler) signUp(c *gin.Context) {
 	//TODO: проверять code из кеша, если все ок, то продолжаем. code:user_id
+
 	var input goGO.User
 
 	if err := c.BindJSON(&input); err != nil {
@@ -161,23 +170,33 @@ type vkidTokenResponse struct {
 	UserId       int64  `json:"user_id"`
 	State        string `json:"state"`
 	Scope        string `json:"scope"`
+	errors
+}
+type errors struct {
+	Error            string `json:"error"`
+	ErrorDescription string `json:"error_description"`
 }
 
 func (h *Handler) signIn(c *gin.Context) {
-	//TODO: всю эту простыню кода привести в нормальный вид
+	//TODO: всю эту простыню кода привести в нормальный вид. -
 	var requestBody signInRequestBody
 	if err := c.BindJSON(&requestBody); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error_text": "Invalid request"})
 		return
 	}
-	//TODO: доставать state и code_challenge из кеша и если че отдавать ошибку
-	//TODO: сохранять code в кеш, чтобы при регистрации, можно было метчить
+	//TODO: доставать state и codeVerifier из кеша и если че отдавать ошибку. +
+
+	codeVerifier, err := h.RedisClient.Get(context.Background(), requestBody.State).Result()
+	if err != nil || codeVerifier == "" {
+		newErrorResponse(c, http.StatusBadRequest, "invalid state")
+	}
+
 	data := vkidTokenRequest{
 		ClientId:     viper.GetInt("VKID_APP_ID"),
 		GrantType:    "authorization_code",
 		DeviceId:     requestBody.DeviceId,
 		Code:         requestBody.Code,
-		CodeVerifier: "39365705206a4290cbf6b5aa1561ba8ab404b58df73ec30aceb823831dae38c7",
+		CodeVerifier: codeVerifier,
 		RedirectUri:  viper.GetString("VKID_REDIRECT_URL"),
 		Scope:        "email",
 	}
@@ -185,30 +204,51 @@ func (h *Handler) signIn(c *gin.Context) {
 	if err != nil {
 		logrus.Fatalf("Ошибка сериализации данных: %v", err)
 	}
-	//TODO при невалидном токене code должен возвращать ошибку, а не пустой ответ)
+
+	//TODO при невалидном токене code должен возвращать ошибку, а не пустой ответ). +
 	response, err := http.Post("https://id.vk.com/oauth2/auth", "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
-		return
+		logrus.Fatalf("failed to send request: %v", err)
 	}
-	defer response.Body.Close()
+	defer func() {
+		if err := response.Body.Close(); err != nil {
+			log.Printf("error closing response body: %v", err)
+		}
+	}()
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		logrus.Fatalf("Ошибка чтения ответа: %v", err)
 	}
 	var responseData vkidTokenResponse
+
 	err = json.Unmarshal(body, &responseData)
 	if err != nil {
 		logrus.Fatalf("Ошибка парсинга JSON: %v", err)
 	}
+
+	if responseData.Error != "" || responseData.ErrorDescription != "" {
+		newErrorResponse(c, http.StatusUnauthorized, "invalid request")
+		newErrorResponse(c, http.StatusUnauthorized, "the provided request was invalid")
+		return
+	}
+
+	fmt.Println(responseData)
+	fmt.Println("ResponseData", responseData)
 	user, err := h.services.GetUserByVkId(responseData.UserId)
 	fmt.Println(responseData.AccessToken)
 	if err != nil {
-		//TODO при невалидном токене vkauth должен возвращать ошибку, а не пустого юзера)
+		//TODO при невалидном токене vkauth должен возвращать ошибку, а не пустого юзера). -
 		userInfo, err := h.services.VKAuth.GetUserInfo(responseData.AccessToken)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error_text": "Failed to get user info"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error_text": "invalid access token"})
 			return
 		}
+		if responseData.AccessToken != "" {
+			newErrorResponse(c, http.StatusUnauthorized, "invalid request")
+			newErrorResponse(c, http.StatusUnauthorized, "the provided request was invalid")
+			return
+		}
+
 		user := goGO.User{
 			FirstName: userInfo.Response[0].FirstName,
 			VkID:      responseData.UserId,
@@ -218,7 +258,7 @@ func (h *Handler) signIn(c *gin.Context) {
 		}
 		_, err = h.services.CreateUser(user)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error_text": "Failed to create user"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error_text": "failed to create user"})
 			return
 		}
 		c.JSON(200, gin.H{
@@ -229,6 +269,12 @@ func (h *Handler) signIn(c *gin.Context) {
 		})
 		return
 	}
+	//TODO: сохранять code в кеш, чтобы при регистрации, можно было метчить.  +
+	err = h.RedisClient.Set(context.Background(), requestBody.Code, responseData.UserId, 10&time.Minute).Err()
+	if err != nil {
+		c.JSON(500, gin.H{"error": "failed to save code in cache"})
+	}
+
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &tokenClaims{
 		jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
