@@ -1,11 +1,13 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 	goGO "github.com/goGo-service/back"
 	"github.com/goGo-service/back/internal/repository"
 	"github.com/goccy/go-json"
-	"io/ioutil"
+	"github.com/golang-jwt/jwt/v5"
+	"io"
 	"net/http"
 )
 
@@ -24,7 +26,8 @@ type UserResponse struct {
 }
 
 type AuthService struct {
-	repo repository.Authorization
+	repo      repository.Authorization
+	jwtSecret string
 }
 
 func NewAuthService(repo repository.Authorization) *AuthService {
@@ -43,7 +46,7 @@ func (s *AuthService) GetUserInfo(accessToken string) (*UserResponse, error) {
 	}
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -58,4 +61,34 @@ func (s *AuthService) GetUserInfo(accessToken string) (*UserResponse, error) {
 
 func (s *AuthService) GetUserByVkId(vkId int64) (*goGO.User, error) {
 	return s.repo.GetUserByVkId(vkId)
+}
+
+func (s *AuthService) GetUser(accessToken string) (*goGO.User, error) {
+	token, err := jwt.Parse(accessToken, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, errors.New("unexpected signing method")
+		}
+		return []byte(s.jwtSecret), nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var userId int64
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		userIdFloat, ok := claims["userId"].(float64)
+		if !ok {
+			return nil, errors.New("invalid token: userId not found")
+		}
+		userId = int64(userIdFloat)
+	} else {
+		return nil, errors.New("invalid token")
+	}
+
+	user, err := s.repo.GetUserById(userId)
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
 }

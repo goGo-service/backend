@@ -9,21 +9,24 @@ import (
 )
 
 type Handler struct {
-	services    *service.Service
-	RedisClient *redis.Client
+	services      *service.Service
+	RedisClient   *redis.Client
+	vkAuthService *service.AuthService
 }
 
-func NewHandler(services *service.Service, redisClient *redis.Client) *Handler {
+func NewHandler(services *service.Service, redisClient *redis.Client, vkAuthService *service.AuthService) *Handler {
 	return &Handler{
-		services:    services,
-		RedisClient: redisClient,
+		services:      services,
+		RedisClient:   redisClient,
+		vkAuthService: vkAuthService,
 	}
 }
 
 func (h *Handler) InitRoutes() *gin.Engine {
 	router := gin.New()
+
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173", "https://stallion-new-infinitely.ngrok-free.app"},
+		AllowOrigins:     []string{"http://localhost:5173", "https://welcome-satyr-easily.ngrok-free.app"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}, // Явно перечисляем методы
 		AllowHeaders:     []string{"Content-Type", "Authorization"},           // Явно перечисляем заголовки
 		ExposeHeaders:    []string{"Content-Length"},
@@ -41,16 +44,16 @@ func (h *Handler) InitRoutes() *gin.Engine {
 		auth.GET("/redirect-url", h.redirectUrl)
 	}
 
-	router.GET("/profile", func(c *gin.Context) {
-		//TODO: доставать из AT юзера и отдавать клиенту
-		c.JSON(200, gin.H{
-			"id":         1337,
-			"username":   "screxy",
-			"last_name":  "Миронов",
-			"first_name": "Владислав",
-			"email":      "dvbvladis@mail.ru",
-		})
-	})
-
+	//router.GET("/profile", func(c *gin.Context) {
+	//	//TODO: доставать из AT юзера и отдавать клиенту
+	//	c.JSON(200, gin.H{
+	//		"id":         1337,
+	//		"username":   "screxy",
+	//		"last_name":  "Миронов",
+	//		"first_name": "Владислав",
+	//		"email":      "dvbvladis@mail.ru",
+	//	})
+	//})
+	router.GET("/profile", h.profile)
 	return router
 }

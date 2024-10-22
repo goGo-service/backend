@@ -14,6 +14,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -29,55 +30,6 @@ type VKResponse struct {
 	Email       string `json:"email"`
 }
 
-//func (h *Handler) callbackHandler(c *gin.Context) {
-//	code := c.Query("code")
-//	if code == "" {
-//		c.JSON(http.StatusBadRequest, gin.H{"error": "No code in request"})
-//		return
-//	}
-//
-//	vkURL := fmt.Sprintf("%s?client_id=%s&client_secret=%s&redirect_uri=%s&code=%s",
-//		tokenURL, clientID, clientSecret, redirectURI, code)
-//
-//	resp, err := http.Get(vkURL)
-//	if err != nil {
-//		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get access token"})
-//		return
-//	}
-//	defer resp.Body.Close()
-//
-//	body, err := ioutil.ReadAll(resp.Body)
-//	if err != nil {
-//		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read response"})
-//		return
-//	}
-//
-//	var vkResp VKResponse
-//	if err := json.Unmarshal(body, &vkResp); err != nil {
-//		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse response"})
-//		return
-//	}
-//
-//	userInfo, err := h.services.VKAuth.GetUserInfo(vkResp.AccessToken)
-//	if err != nil {
-//		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user info"})
-//		return
-//	}
-//
-//	c.JSON(http.StatusOK, gin.H{
-//		"access_token": vkResp.AccessToken,
-//		"user_id":      vkResp.UserID,
-//		"email":        vkResp.Email,
-//		"user_info":    userInfo,
-//	})
-//}
-
-//func (h *Handler) vkAuthHandler(c *gin.Context) {
-//	authURL := fmt.Sprintf("%s?client_id=%s&redirect_uri=%s&scope=%s&response_type=%s&v=%s",
-//		vkAuthURL, clientID, redirectURI, scope, responseType, apiVersion)
-//	c.Redirect(http.StatusFound, authURL)
-//}
-
 func randomBytesInHex(count int) (string, error) {
 	buf := make([]byte, count)
 	_, err := io.ReadFull(rand.Reader, buf)
@@ -91,9 +43,7 @@ func randomBytesInHex(count int) (string, error) {
 func (h *Handler) redirectUrl(c *gin.Context) {
 	redirectUrl := viper.GetString("VKID_REDIRECT_URL")
 	appId := viper.GetString("VKID_APP_ID")
-	//TODO: сохранять codeVerifier в кеш, где ключем будет state значением codeVerifier. +
 	codeVerifier, _ := randomBytesInHex(32)
-	//codeVerifier := "39365705206a4290cbf6b5aa1561ba8ab404b58df73ec30aceb823831dae38c7"
 	sha2 := sha256.New()
 
 	_, err := io.WriteString(sha2, codeVerifier)
@@ -102,7 +52,6 @@ func (h *Handler) redirectUrl(c *gin.Context) {
 	}
 	codeChallenge := base64.RawURLEncoding.EncodeToString(sha2.Sum(nil))
 	state, _ := randomBytesInHex(24)
-	//state := "9c00694677f5056d8060e6c43f847eda3bf08ba64a94827f"
 
 	err = h.RedisClient.Set(context.Background(), state, codeVerifier, 10&time.Minute).Err()
 	if err != nil {
@@ -120,7 +69,11 @@ func (h *Handler) redirectUrl(c *gin.Context) {
 }
 
 func (h *Handler) signUp(c *gin.Context) {
-	//TODO: проверять code из кеша, если все ок, то продолжаем. code:user_id
+	var requestBody vkidTokenRequest
+	userId, err := h.RedisClient.Get(context.Background(), requestBody.Code).Result()
+	if err != nil || userId == "" {
+		newErrorResponse(c, http.StatusBadRequest, "invalid user_id")
+	}
 
 	var input goGO.User
 
@@ -128,7 +81,7 @@ func (h *Handler) signUp(c *gin.Context) {
 		newErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	//FIXME: здесь не должен создаваться новый юзер, а изменяться старый
+
 	id, err := h.services.Authorization.CreateUser(input)
 	if err != nil {
 		newErrorResponse(c, http.StatusInternalServerError, err.Error())
@@ -178,13 +131,11 @@ type errors struct {
 }
 
 func (h *Handler) signIn(c *gin.Context) {
-	//TODO: всю эту простыню кода привести в нормальный вид. -
 	var requestBody signInRequestBody
 	if err := c.BindJSON(&requestBody); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error_text": "Invalid request"})
 		return
 	}
-	//TODO: доставать state и codeVerifier из кеша и если че отдавать ошибку. +
 
 	codeVerifier, err := h.RedisClient.Get(context.Background(), requestBody.State).Result()
 	if err != nil || codeVerifier == "" {
@@ -205,7 +156,6 @@ func (h *Handler) signIn(c *gin.Context) {
 		logrus.Fatalf("Ошибка сериализации данных: %v", err)
 	}
 
-	//TODO при невалидном токене code должен возвращать ошибку, а не пустой ответ). +
 	response, err := http.Post("https://id.vk.com/oauth2/auth", "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		logrus.Fatalf("failed to send request: %v", err)
@@ -232,35 +182,26 @@ func (h *Handler) signIn(c *gin.Context) {
 		return
 	}
 
-	fmt.Println(responseData)
-	fmt.Println("ResponseData", responseData)
 	user, err := h.services.GetUserByVkId(responseData.UserId)
-	fmt.Println(responseData.AccessToken)
 	if err != nil {
-		//TODO при невалидном токене vkauth должен возвращать ошибку, а не пустого юзера). -
 		userInfo, err := h.services.VKAuth.GetUserInfo(responseData.AccessToken)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error_text": "invalid access token"})
 			return
 		}
-		if responseData.AccessToken != "" {
-			newErrorResponse(c, http.StatusUnauthorized, "invalid request")
-			newErrorResponse(c, http.StatusUnauthorized, "the provided request was invalid")
-			return
-		}
 
-		user := goGO.User{
-			FirstName: userInfo.Response[0].FirstName,
-			VkID:      responseData.UserId,
-			LastName:  userInfo.Response[0].LastName,
-			Username:  "",
-			Email:     userInfo.Response[0].Email,
-		}
-		_, err = h.services.CreateUser(user)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error_text": "failed to create user"})
-			return
-		}
+		//user := goGO.User{
+		//	FirstName: userInfo.Response[0].FirstName,
+		//	VkID:      responseData.UserId,
+		//	LastName:  userInfo.Response[0].LastName,
+		//	Username:  "",
+		//	Email:     userInfo.Response[0].Email,
+		//}
+		//_, err = h.services.CreateUser(user)
+		//if err != nil {
+		//	c.JSON(http.StatusInternalServerError, gin.H{"error_text": "failed to create user"})
+		//	return
+		//}
 		c.JSON(200, gin.H{
 			"action":     "register",
 			"first_name": userInfo.Response[0].FirstName,
@@ -269,7 +210,6 @@ func (h *Handler) signIn(c *gin.Context) {
 		})
 		return
 	}
-	//TODO: сохранять code в кеш, чтобы при регистрации, можно было метчить.  +
 	err = h.RedisClient.Set(context.Background(), requestBody.Code, responseData.UserId, 10&time.Minute).Err()
 	if err != nil {
 		c.JSON(500, gin.H{"error": "failed to save code in cache"})
@@ -295,4 +235,49 @@ func (h *Handler) signIn(c *gin.Context) {
 		"action":       "auth",
 		"access_token": ss,
 	})
+}
+
+//func (h *Handler) profile(c *gin.Context) {
+//	var profileData vkidTokenResponse
+//
+//	accessToken := profileData.AccessToken
+//
+//	if accessToken == "" {
+//		c.JSON(http.StatusBadRequest, gin.H{"error": "access token is required"})
+//		return
+//	}
+//
+//	userInfo, err := h.services.VKAuth.GetUserInfo(profileData.AccessToken)
+//	if err != nil {
+//		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+//		return
+//	}
+//
+//	c.JSON(http.StatusOK, gin.H{"user": userInfo.Response})
+//}
+
+func (h *Handler) profile(c *gin.Context) {
+	authHeader := c.GetHeader("Authorization")
+	if authHeader == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Authorization header is required"})
+		return
+	}
+	accessToken := strings.Split(authHeader, " ")[1]
+
+	if accessToken == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "access token is required"})
+		return
+	}
+
+	user, err := h.services.GetUser(accessToken)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if user == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+		return
+	}
+	c.JSON(http.StatusOK, user)
 }

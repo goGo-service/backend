@@ -60,7 +60,7 @@ func main() {
 
 	repos := repository.NewRepository(db)
 	services := service.NewService(repos)
-	handlers := handler.NewHandler(services, redisClient)
+	handlers := handler.NewHandler(services, redisClient, services.VKAuth)
 	srv := new(goGO.Server)
 
 	if err := srv.Run(viper.GetString("HOST_PORT"), handlers.InitRoutes()); err != nil {
