@@ -26,7 +26,7 @@ func (h *Handler) InitRoutes() *gin.Engine {
 	router := gin.New()
 
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173", "https://welcome-satyr-easily.ngrok-free.app"},
+		AllowOrigins:     []string{"http://localhost:5173", "https://stallion-new-infinitely.ngrok-free.app"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}, // Явно перечисляем методы
 		AllowHeaders:     []string{"Content-Type", "Authorization"},           // Явно перечисляем заголовки
 		ExposeHeaders:    []string{"Content-Length"},
@@ -42,18 +42,8 @@ func (h *Handler) InitRoutes() *gin.Engine {
 			c.JSON(200, "")
 		})
 		auth.GET("/redirect-url", h.redirectUrl)
+		auth.GET("/token/refresh", h.refreshToken)
 	}
-
-	//router.GET("/profile", func(c *gin.Context) {
-	//	//TODO: доставать из AT юзера и отдавать клиенту
-	//	c.JSON(200, gin.H{
-	//		"id":         1337,
-	//		"username":   "screxy",
-	//		"last_name":  "Миронов",
-	//		"first_name": "Владислав",
-	//		"email":      "dvbvladis@mail.ru",
-	//	})
-	//})
 	router.GET("/profile", h.profile)
 	return router
 }

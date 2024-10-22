@@ -45,7 +45,7 @@ func (r *AuthPostgres) GetUserByVkId(vkId int64) (*goGO.User, error) {
 func (r *AuthPostgres) GetUserById(userId int64) (*goGO.User, error) {
 	var user goGO.User
 
-	query := fmt.Sprintf("SELECT * FROM users WHERE id = $1", internal.UsersTable)
+	query := fmt.Sprintf("SELECT * FROM %s WHERE id = $1", internal.UsersTable)
 	row := r.db.QueryRow(query, userId)
 	if err := row.Scan(&user.Id, &user.VkID, &user.FirstName, &user.LastName, &user.Username, &user.Email); err != nil {
 		fmt.Println("Error executing query:", err)

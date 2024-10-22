@@ -1,7 +1,7 @@
 package goGO
 
 type User struct {
-	Id        int    `json:"-"`
+	Id        int    `json:"id"`
 	FirstName string `json:"first_name" bindind:"required"`
 	VkID      int64  `json:"vk_id"`
 	LastName  string `json:"last_name" bindind:"required"`

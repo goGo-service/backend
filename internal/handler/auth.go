@@ -14,6 +14,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -68,32 +69,63 @@ func (h *Handler) redirectUrl(c *gin.Context) {
 	})
 }
 
+type SignUpRequestBody struct {
+	Code      string `json:"code" binding:"required"`
+	FirstName string `json:"first_name" binding:"required"`
+	LastName  string `json:"last_name" binding:"required"`
+	Username  string `json:"username" binding:"required"`
+}
+
 func (h *Handler) signUp(c *gin.Context) {
-	var requestBody vkidTokenRequest
-	userId, err := h.RedisClient.Get(context.Background(), requestBody.Code).Result()
-	if err != nil || userId == "" {
-		newErrorResponse(c, http.StatusBadRequest, "invalid user_id")
-	}
-
-	var input goGO.User
-
-	if err := c.BindJSON(&input); err != nil {
+	var requestBody SignUpRequestBody
+	if err := c.ShouldBindJSON(&requestBody); err != nil {
 		newErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
+	vkUserId, err := h.RedisClient.Get(context.Background(), requestBody.Code).Result()
+	if err != nil {
+		newErrorResponse(c, http.StatusBadRequest, "invalid user_id")
+		return
+	}
 
+	var input goGO.User
+	input.Username = requestBody.Username
+	input.FirstName = requestBody.FirstName
+	input.LastName = requestBody.LastName
+	//FIXME: выглядит дерьмово
+	vkId, _ := strconv.Atoi(vkUserId)
+	input.VkID = int64(vkId)
 	id, err := h.services.Authorization.CreateUser(input)
 	if err != nil {
 		newErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-
-	c.JSON(http.StatusOK, map[string]interface{}{
-		"id": id,
+	h.RedisClient.Del(context.Background(), requestBody.Code)
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &TokenClaims{
+		jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+		},
+		id,
+	})
+	ss, _ := token.SignedString([]byte(viper.GetString("SECRET_KEY")))
+	http.SetCookie(c.Writer, &http.Cookie{
+		Name:     "refresh_token",
+		Value:    "refresh_token",
+		Path:     "/",
+		MaxAge:   3600,
+		HttpOnly: true,
+		SameSite: http.SameSiteNoneMode,
+		Secure:   true,
+		Domain:   "localhost",
+	})
+	c.JSON(200, gin.H{
+		"action":       "auth",
+		"access_token": ss,
 	})
 }
 
-type tokenClaims struct {
+type TokenClaims struct {
 	jwt.RegisteredClaims
 	UserId int `json:"user_id"`
 }
@@ -189,19 +221,11 @@ func (h *Handler) signIn(c *gin.Context) {
 			c.JSON(http.StatusUnauthorized, gin.H{"error_text": "invalid access token"})
 			return
 		}
+		err = h.RedisClient.Set(context.Background(), requestBody.Code, responseData.UserId, 10&time.Minute).Err()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		}
 
-		//user := goGO.User{
-		//	FirstName: userInfo.Response[0].FirstName,
-		//	VkID:      responseData.UserId,
-		//	LastName:  userInfo.Response[0].LastName,
-		//	Username:  "",
-		//	Email:     userInfo.Response[0].Email,
-		//}
-		//_, err = h.services.CreateUser(user)
-		//if err != nil {
-		//	c.JSON(http.StatusInternalServerError, gin.H{"error_text": "failed to create user"})
-		//	return
-		//}
 		c.JSON(200, gin.H{
 			"action":     "register",
 			"first_name": userInfo.Response[0].FirstName,
@@ -210,25 +234,23 @@ func (h *Handler) signIn(c *gin.Context) {
 		})
 		return
 	}
-	err = h.RedisClient.Set(context.Background(), requestBody.Code, responseData.UserId, 10&time.Minute).Err()
-	if err != nil {
-		c.JSON(500, gin.H{"error": "failed to save code in cache"})
-	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &tokenClaims{
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &TokenClaims{
 		jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 		user.Id,
 	})
-	ss, _ := token.SignedString([]byte("AllYourBase"))
+	ss, _ := token.SignedString([]byte(viper.GetString("SECRET_KEY")))
 	http.SetCookie(c.Writer, &http.Cookie{
 		Name:     "refresh_token",
-		Value:    "tessts",
+		Value:    "refresh_token",
 		Path:     "/",
 		MaxAge:   3600,
 		HttpOnly: true,
+		SameSite: http.SameSiteNoneMode,
+		Secure:   true,
 		Domain:   "localhost",
 	})
 	c.JSON(200, gin.H{
@@ -237,29 +259,10 @@ func (h *Handler) signIn(c *gin.Context) {
 	})
 }
 
-//func (h *Handler) profile(c *gin.Context) {
-//	var profileData vkidTokenResponse
-//
-//	accessToken := profileData.AccessToken
-//
-//	if accessToken == "" {
-//		c.JSON(http.StatusBadRequest, gin.H{"error": "access token is required"})
-//		return
-//	}
-//
-//	userInfo, err := h.services.VKAuth.GetUserInfo(profileData.AccessToken)
-//	if err != nil {
-//		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-//		return
-//	}
-//
-//	c.JSON(http.StatusOK, gin.H{"user": userInfo.Response})
-//}
-
 func (h *Handler) profile(c *gin.Context) {
 	authHeader := c.GetHeader("Authorization")
 	if authHeader == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Authorization header is required"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header is required"})
 		return
 	}
 	accessToken := strings.Split(authHeader, " ")[1]
@@ -280,4 +283,38 @@ func (h *Handler) profile(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, user)
+}
+
+func (h *Handler) refreshToken(c *gin.Context) {
+	cookie, err := c.Cookie("refresh_token")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "token is required"})
+		return
+	}
+	//TODO: сделать нормально
+	if cookie != "refresh_token" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid refresh token"})
+		return
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &TokenClaims{
+		jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+		},
+		15,
+	})
+	ss, _ := token.SignedString([]byte(viper.GetString("SECRET_KEY")))
+	http.SetCookie(c.Writer, &http.Cookie{
+		Name:     "refresh_token",
+		Value:    "refresh_token",
+		Path:     "/",
+		MaxAge:   3600,
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteNoneMode,
+		Domain:   "localhost",
+	})
+	c.JSON(200, gin.H{
+		"access_token": ss,
+	})
 }

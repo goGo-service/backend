@@ -4,9 +4,12 @@ import (
 	"errors"
 	"fmt"
 	goGO "github.com/goGo-service/back"
+	"github.com/goGo-service/back/internal/handler"
 	"github.com/goGo-service/back/internal/repository"
 	"github.com/goccy/go-json"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"io"
 	"net/http"
 )
@@ -31,7 +34,7 @@ type AuthService struct {
 }
 
 func NewAuthService(repo repository.Authorization) *AuthService {
-	return &AuthService{repo: repo}
+	return &AuthService{repo: repo, jwtSecret: viper.GetString("SECRET_KEY")}
 }
 
 func (s *AuthService) CreateUser(user goGO.User) (int, error) {
@@ -63,29 +66,34 @@ func (s *AuthService) GetUserByVkId(vkId int64) (*goGO.User, error) {
 	return s.repo.GetUserByVkId(vkId)
 }
 
-func (s *AuthService) GetUser(accessToken string) (*goGO.User, error) {
-	token, err := jwt.Parse(accessToken, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errors.New("unexpected signing method")
-		}
-		return []byte(s.jwtSecret), nil
+func ParseToken(tokenString string, secretKey string) (*handler.TokenClaims, error) {
+	// Разбираем и валидируем токен
+	token, err := jwt.ParseWithClaims(tokenString, &handler.TokenClaims{}, func(token *jwt.Token) (interface{}, error) {
+		return []byte(secretKey), nil
 	})
+
 	if err != nil {
 		return nil, err
 	}
 
-	var userId int64
-	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		userIdFloat, ok := claims["userId"].(float64)
-		if !ok {
-			return nil, errors.New("invalid token: userId not found")
-		}
-		userId = int64(userIdFloat)
+	// Приводим claims к типу TokenClaims
+	if claims, ok := token.Claims.(*handler.TokenClaims); ok && token.Valid {
+		return claims, nil
 	} else {
+		logrus.Debug("her")
 		return nil, errors.New("invalid token")
 	}
+}
+func (s *AuthService) GetUser(accessToken string) (*goGO.User, error) {
+	claims, err := ParseToken(accessToken, viper.GetString("SECRET_KEY"))
+	if err != nil {
 
-	user, err := s.repo.GetUserById(userId)
+		// TODO: Обрабатываем ошибку
+	}
+
+	userId := claims.UserId
+
+	user, err := s.repo.GetUserById(int64(userId))
 	if err != nil {
 		return nil, err
 	}
