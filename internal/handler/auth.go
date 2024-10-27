@@ -205,7 +205,6 @@ func (h *Handler) signIn(c *gin.Context) {
 	}
 
 	if responseData.Error != "" || responseData.ErrorDescription != "" {
-		newErrorResponse(c, http.StatusUnauthorized, "invalid request")
 		newErrorResponse(c, http.StatusUnauthorized, "the provided request was invalid")
 		return
 	}
@@ -231,17 +230,14 @@ func (h *Handler) signIn(c *gin.Context) {
 		return
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &models.TokenClaims{
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-		},
-		UserId: user.Id,
-	})
-	ss, _ := token.SignedString([]byte(viper.GetString("SECRET_KEY")))
+	token, err := h.authUC.Auth(user.Id)
+	if err != nil {
+		newErrorResponse(c, http.StatusInternalServerError, "internal server error")
+		return
+	}
 	http.SetCookie(c.Writer, &http.Cookie{
 		Name:     "refresh_token",
-		Value:    "refresh_token",
+		Value:    token.RefreshToken,
 		Path:     "/",
 		MaxAge:   3600,
 		HttpOnly: true,
@@ -251,7 +247,7 @@ func (h *Handler) signIn(c *gin.Context) {
 	})
 	c.JSON(200, gin.H{
 		"action":       "auth",
-		"access_token": ss,
+		"access_token": token.AccessToken,
 	})
 }
 
@@ -282,13 +278,13 @@ func (h *Handler) refreshToken(c *gin.Context) {
 		return
 	}
 
-	ss, err := h.tokenUC.RefreshToken(cookie)
+	tokens, err := h.authUC.RefreshToken(cookie)
 	if err != nil {
 		return
 	}
 	http.SetCookie(c.Writer, &http.Cookie{
 		Name:     "refresh_token",
-		Value:    "refresh_token",
+		Value:    tokens.RefreshToken,
 		Path:     "/",
 		MaxAge:   3600,
 		HttpOnly: true,
@@ -297,6 +293,6 @@ func (h *Handler) refreshToken(c *gin.Context) {
 		Domain:   "localhost",
 	})
 	c.JSON(200, gin.H{
-		"access_token": ss,
+		"access_token": tokens.AccessToken,
 	})
 }

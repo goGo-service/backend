@@ -4,6 +4,7 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	goGO "github.com/goGo-service/back"
+	"github.com/goGo-service/back/internal/models"
 	"github.com/goGo-service/back/internal/service"
 
 	"github.com/redis/go-redis/v9"
@@ -12,6 +13,11 @@ import (
 
 type tokenUseCase interface {
 	RefreshToken(oldToken string) (string, error)
+}
+
+type authUseCase interface {
+	Auth(userId int) (*models.TokenPair, error)
+	RefreshToken(oldToken string) (*models.TokenPair, error)
 }
 
 type ProfileUseCase interface {
@@ -23,16 +29,18 @@ type Handler struct {
 	RedisClient   *redis.Client
 	vkAuthService *service.AuthService
 	tokenUC       tokenUseCase
+	authUC        authUseCase
 	profileUC     ProfileUseCase
 }
 
-func NewHandler(services *service.Service, redisClient *redis.Client, vkAuthService *service.AuthService, tokenUC tokenUseCase, profileUC ProfileUseCase) *Handler {
+func NewHandler(services *service.Service, redisClient *redis.Client, vkAuthService *service.AuthService, tokenUC tokenUseCase, profileUC ProfileUseCase, authUC authUseCase) *Handler {
 	return &Handler{
 		services:      services,
 		RedisClient:   redisClient,
 		vkAuthService: vkAuthService,
 		tokenUC:       tokenUC,
 		profileUC:     profileUC,
+		authUC:        authUC,
 	}
 }
 
@@ -40,7 +48,7 @@ func (h *Handler) InitRoutes() *gin.Engine {
 	router := gin.New()
 
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173", "https://welcome-satyr-easily.ngrok-free.app"},
+		AllowOrigins:     []string{"http://localhost:5173", "https://welcome-satyr-easily.ngrok-free.app", "https://stallion-new-infinitely.ngrok-free.app"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}, // Явно перечисляем методы
 		AllowHeaders:     []string{"Content-Type", "Authorization"},           // Явно перечисляем заголовки
 		ExposeHeaders:    []string{"Content-Length"},
