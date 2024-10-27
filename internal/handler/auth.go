@@ -7,6 +7,8 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
+	"github.com/goGo-service/back/internal"
+	"github.com/goGo-service/back/internal/models"
 	"github.com/goccy/go-json"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -15,7 +17,6 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -101,12 +102,12 @@ func (h *Handler) signUp(c *gin.Context) {
 		return
 	}
 	h.RedisClient.Del(context.Background(), requestBody.Code)
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &TokenClaims{
-		jwt.RegisteredClaims{
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &models.TokenClaims{
+		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
-		id,
+		UserId: id,
 	})
 	ss, _ := token.SignedString([]byte(viper.GetString("SECRET_KEY")))
 	http.SetCookie(c.Writer, &http.Cookie{
@@ -123,11 +124,6 @@ func (h *Handler) signUp(c *gin.Context) {
 		"action":       "auth",
 		"access_token": ss,
 	})
-}
-
-type TokenClaims struct {
-	jwt.RegisteredClaims
-	UserId int `json:"user_id"`
 }
 
 type signInRequestBody struct {
@@ -235,12 +231,12 @@ func (h *Handler) signIn(c *gin.Context) {
 		return
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &TokenClaims{
-		jwt.RegisteredClaims{
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &models.TokenClaims{
+		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
-		user.Id,
+		UserId: user.Id,
 	})
 	ss, _ := token.SignedString([]byte(viper.GetString("SECRET_KEY")))
 	http.SetCookie(c.Writer, &http.Cookie{
@@ -265,21 +261,16 @@ func (h *Handler) profile(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header is required"})
 		return
 	}
-	accessToken := strings.Split(authHeader, " ")[1]
-
-	if accessToken == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "access token is required"})
-		return
-	}
-
-	user, err := h.services.GetUser(accessToken)
+	user, err := h.profileUC.Profile(authHeader)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	if user == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+		switch err {
+		case internal.AccessTokenRequiredError:
+			c.JSON(http.StatusBadRequest, gin.H{"error": "access token is required"})
+		case internal.InternalServiceError:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		case internal.UserNotFoundError:
+			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+		}
 		return
 	}
 	c.JSON(http.StatusOK, user)
@@ -288,22 +279,13 @@ func (h *Handler) profile(c *gin.Context) {
 func (h *Handler) refreshToken(c *gin.Context) {
 	cookie, err := c.Cookie("refresh_token")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "token is required"})
 		return
 	}
-	//TODO: сделать нормально
-	if cookie != "refresh_token" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid refresh token"})
+
+	ss, err := h.tokenUC.RefreshToken(cookie)
+	if err != nil {
 		return
 	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &TokenClaims{
-		jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-		},
-		15,
-	})
-	ss, _ := token.SignedString([]byte(viper.GetString("SECRET_KEY")))
 	http.SetCookie(c.Writer, &http.Cookie{
 		Name:     "refresh_token",
 		Value:    "refresh_token",

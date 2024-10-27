@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	goGO "github.com/goGo-service/back"
-	"github.com/goGo-service/back/internal/handler"
+	"github.com/goGo-service/back/internal/models"
 	"github.com/goGo-service/back/internal/repository"
 	"github.com/goccy/go-json"
 	"github.com/golang-jwt/jwt/v5"
@@ -66,9 +66,9 @@ func (s *AuthService) GetUserByVkId(vkId int64) (*goGO.User, error) {
 	return s.repo.GetUserByVkId(vkId)
 }
 
-func ParseToken(tokenString string, secretKey string) (*handler.TokenClaims, error) {
+func ParseToken(tokenString string, secretKey string) (*models.TokenClaims, error) {
 	// Разбираем и валидируем токен
-	token, err := jwt.ParseWithClaims(tokenString, &handler.TokenClaims{}, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &models.TokenClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return []byte(secretKey), nil
 	})
 
@@ -77,7 +77,7 @@ func ParseToken(tokenString string, secretKey string) (*handler.TokenClaims, err
 	}
 
 	// Приводим claims к типу TokenClaims
-	if claims, ok := token.Claims.(*handler.TokenClaims); ok && token.Valid {
+	if claims, ok := token.Claims.(*models.TokenClaims); ok && token.Valid {
 		return claims, nil
 	} else {
 		logrus.Debug("her")
