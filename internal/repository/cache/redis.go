@@ -8,7 +8,34 @@ import (
 	"strconv"
 )
 
+type Redis struct {
+	cache *redis.Client
+}
+
+func (r *Redis) GetString(key string) (string, error) {
+	result, err := r.cache.Get(context.Background(), key).Result()
+	if err != nil {
+		return "", err
+	}
+
+	return result, nil
+}
+
+func (r *Redis) GetInt(key string) (int, error) {
+	strRes, err := r.GetString(key)
+	res, err := strconv.Atoi(strRes)
+	if err != nil {
+		return 0, err
+	}
+
+	return res, nil
+}
+
 var ctx = context.Background()
+
+func NewRedisCache(cache *redis.Client) *Redis {
+	return &Redis{cache: cache}
+}
 
 func NewRedisDB() (*redis.Client, error) {
 	redisHost := viper.GetString("REDIS_HOST")

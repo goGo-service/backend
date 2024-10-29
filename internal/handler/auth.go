@@ -22,7 +22,6 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 
 	"github.com/gin-gonic/gin"
-	goGO "github.com/goGo-service/back"
 )
 
 type VKResponse struct {
@@ -89,14 +88,14 @@ func (h *Handler) signUp(c *gin.Context) {
 		return
 	}
 
-	var input goGO.User
+	var input models.User
 	input.Username = requestBody.Username
 	input.FirstName = requestBody.FirstName
 	input.LastName = requestBody.LastName
 	//FIXME: выглядит дерьмово
 	vkId, _ := strconv.Atoi(vkUserId)
 	input.VkID = int64(vkId)
-	id, err := h.services.Authorization.CreateUser(input)
+	id, err := h.services.CreateUser(input)
 	if err != nil {
 		newErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
@@ -130,32 +129,6 @@ type signInRequestBody struct {
 	Code     string `json:"code"`
 	DeviceId string `json:"device_id"`
 	State    string `json:"state"`
-}
-
-type vkidTokenRequest struct {
-	GrantType    string `json:"grant_type"`
-	ClientId     int    `json:"client_id"`
-	DeviceId     string `json:"device_id"`
-	RedirectUri  string `json:"redirect_uri"`
-	Code         string `json:"code"`
-	CodeVerifier string `json:"code_verifier"`
-	Scope        string `json:"scope"`
-}
-
-type vkidTokenResponse struct {
-	RefreshToken string `json:"refresh_token"`
-	AccessToken  string `json:"access_token"`
-	IdToken      string `json:"id_token"`
-	TokenType    string `json:"token_type"`
-	ExpiresIn    int    `json:"expires_in"`
-	UserId       int64  `json:"user_id"`
-	State        string `json:"state"`
-	Scope        string `json:"scope"`
-	errors
-}
-type errors struct {
-	Error            string `json:"error"`
-	ErrorDescription string `json:"error_description"`
 }
 
 func (h *Handler) signIn(c *gin.Context) {
@@ -211,7 +184,7 @@ func (h *Handler) signIn(c *gin.Context) {
 
 	user, err := h.services.GetUserByVkId(responseData.UserId)
 	if err != nil {
-		userInfo, err := h.services.VKAuth.GetUserInfo(responseData.AccessToken)
+		userInfo, err := h.services.VKID.GetUserInfo(responseData.AccessToken)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error_text": "invalid access token"})
 			return

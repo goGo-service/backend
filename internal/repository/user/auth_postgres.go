@@ -2,21 +2,21 @@ package user
 
 import (
 	"fmt"
-	goGO "github.com/goGo-service/back"
 	"github.com/goGo-service/back/internal"
+	"github.com/goGo-service/back/internal/models"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 )
 
-type AuthPostgres struct {
+type Postgres struct {
 	db *sqlx.DB
 }
 
-func NewAuthPostgres(db *sqlx.DB) *AuthPostgres {
-	return &AuthPostgres{db: db}
+func NewUserPostgres(db *sqlx.DB) *Postgres {
+	return &Postgres{db: db}
 }
 
-func (r *AuthPostgres) CreateUser(user goGO.User) (int, error) {
+func (r *Postgres) CreateUser(user models.User) (int, error) {
 	var id int
 
 	query := fmt.Sprintf("INSERT INTO %s (first_name, last_name, username, email, vk_id) values ($1, $2, $3, $4, $5) RETURNING id", internal.UsersTable)
@@ -29,8 +29,8 @@ func (r *AuthPostgres) CreateUser(user goGO.User) (int, error) {
 	return id, nil
 }
 
-func (r *AuthPostgres) GetUserByVkId(vkId int64) (*goGO.User, error) {
-	var user goGO.User
+func (r *Postgres) GetUserByVkId(vkId int64) (*models.User, error) {
+	var user models.User
 
 	query := fmt.Sprintf("SELECT * FROM %s WHERE vk_id = $1", internal.UsersTable)
 	row := r.db.QueryRow(query, vkId)
@@ -42,8 +42,8 @@ func (r *AuthPostgres) GetUserByVkId(vkId int64) (*goGO.User, error) {
 	return &user, nil
 }
 
-func (r *AuthPostgres) GetUserById(userId int64) (*goGO.User, error) {
-	var user goGO.User
+func (r *Postgres) GetUserById(userId int) (*models.User, error) {
+	var user models.User
 
 	query := fmt.Sprintf("SELECT * FROM %s WHERE id = $1", internal.UsersTable)
 	row := r.db.QueryRow(query, userId)

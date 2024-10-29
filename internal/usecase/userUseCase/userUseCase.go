@@ -1,8 +1,8 @@
 package userUseCase
 
 import (
-	goGO "github.com/goGo-service/back"
 	"github.com/goGo-service/back/internal"
+	"github.com/goGo-service/back/internal/models"
 	"github.com/goGo-service/back/internal/service"
 	"strings"
 )
@@ -17,14 +17,14 @@ func NewUserUseCase(service *service.Service) *UserUseCase {
 	}
 }
 
-func (u *UserUseCase) Profile(authHeader string) (*goGO.User, error) {
+func (u *UserUseCase) Profile(authHeader string) (*models.User, error) {
 	accessToken := strings.Split(authHeader, " ")[1]
 
 	if accessToken == "" {
 		return nil, internal.AccessTokenRequiredError
 	}
-
-	user, err := u.services.GetUser(accessToken)
+	tokenClaims, err := u.services.Token.ParseToken(accessToken)
+	user, err := u.services.User.GetUser(tokenClaims.UserId)
 	if err != nil {
 		return nil, internal.InternalServiceError
 	}
@@ -33,4 +33,13 @@ func (u *UserUseCase) Profile(authHeader string) (*goGO.User, error) {
 	}
 
 	return user, nil
+}
+
+func (u *UserUseCase) CreateUser(user models.User) (int, error) {
+	userId, err := u.services.User.CreateUser(user)
+	if err != nil {
+		return 0, err
+	}
+
+	return userId, err
 }
