@@ -128,7 +128,18 @@ func (s *VKIDService) ExchangeCode(code string, deviceId string, state string) (
 	return &responseData, nil
 }
 
-func (s *VKIDService) CacheVKIDUser(code string, id int64) error {
+func (s *VKIDService) CacheVKID(code string, id int64) error {
 	err := s.cache.Set(code, id, 30*60)
 	return err
+}
+
+func (s *VKIDService) GetCachedVKID(code string) (int64, error) {
+	vkid, err := s.cache.GetInt64(code)
+	if err != nil {
+		return 0, err
+	}
+	return vkid, nil
+}
+func (s *VKIDService) DeleteCachedVKID(code string) error {
+	return s.cache.Delete(code)
 }

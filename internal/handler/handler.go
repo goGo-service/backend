@@ -23,6 +23,8 @@ type UserUseCase interface {
 type VKIDUseCase interface {
 	GetUserIdAndAT(code string, deviceId string, state string) (int64, string, error)
 	GetUserInfo(accessToken string, code string) (*models.VKIDUserInfo, error)
+	GetVKID(code string) (int64, error)
+	DeleteVKID(code string) error
 }
 
 type Handler struct {

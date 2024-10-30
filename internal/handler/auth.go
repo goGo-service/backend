@@ -8,14 +8,12 @@ import (
 	"fmt"
 	"github.com/goGo-service/back/internal"
 	"github.com/goGo-service/back/internal/models"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"golang.org/x/net/context"
 	"io"
 	"net/http"
-	"strconv"
 	"time"
-
-	"github.com/golang-jwt/jwt/v5"
 
 	"github.com/gin-gonic/gin"
 )
@@ -53,6 +51,7 @@ func (h *Handler) redirectUrl(c *gin.Context) {
 	err = h.redisClient.Set(context.Background(), state, codeVerifier, 10&time.Minute).Err()
 	if err != nil {
 		c.JSON(500, gin.H{"error": "failed to save codeVerifier in cache"})
+		return
 	}
 
 	scope := "email"
@@ -78,9 +77,20 @@ func (h *Handler) signUp(c *gin.Context) {
 		newErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	vkUserId, err := h.redisClient.Get(context.Background(), requestBody.Code).Result()
+	vkId, err := h.vkidUC.GetVKID(requestBody.Code)
 	if err != nil {
 		newErrorResponse(c, http.StatusBadRequest, "invalid user_id")
+		return
+	}
+
+	user, err := h.userUC.GetUserByVkId(vkId) // проверим, вдруг такой юзер уже есть
+	if err != nil {
+		newErrorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	if user != nil {
+		newErrorResponse(c, http.StatusConflict, "user already exist")
 		return
 	}
 
@@ -88,26 +98,26 @@ func (h *Handler) signUp(c *gin.Context) {
 	input.Username = requestBody.Username
 	input.FirstName = requestBody.FirstName
 	input.LastName = requestBody.LastName
-	//FIXME: выглядит дерьмово
-	vkId, _ := strconv.Atoi(vkUserId)
-	input.VkID = int64(vkId)
-	id, err := h.services.CreateUser(input)
+	input.VkID = vkId
+	id, err := h.userUC.CreateUser(input)
 	if err != nil {
 		newErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	h.redisClient.Del(context.Background(), requestBody.Code)
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &models.TokenClaims{
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-		},
-		UserId: id,
-	})
-	ss, _ := token.SignedString([]byte(viper.GetString("SECRET_KEY")))
+	err = h.vkidUC.DeleteVKID(requestBody.Code)
+	if err != nil {
+		logrus.Warning("dont delete cached vkid", err.Error())
+	}
+
+	tokenPair, err := h.authUC.Auth(id)
+	if err != nil {
+		newErrorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	//TODO: вынести все генерации ответов с токеном в одну функцию
 	http.SetCookie(c.Writer, &http.Cookie{
 		Name:     "refresh_token",
-		Value:    "refresh_token",
+		Value:    tokenPair.RefreshToken,
 		Path:     "/",
 		MaxAge:   3600,
 		HttpOnly: true,
@@ -117,7 +127,7 @@ func (h *Handler) signUp(c *gin.Context) {
 	})
 	c.JSON(200, gin.H{
 		"action":       "auth",
-		"access_token": ss,
+		"access_token": tokenPair.AccessToken,
 	})
 }
 

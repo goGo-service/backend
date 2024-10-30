@@ -69,7 +69,20 @@ func (r *Redis) GetInt(key string) (int, error) {
 	return res, nil
 }
 
+func (r *Redis) GetInt64(key string) (int64, error) {
+	strRes, err := r.GetString(key)
+	res, err := strconv.ParseInt(strRes, 10, 64)
+	if err != nil {
+		return 0, err
+	}
+
+	return res, nil
+}
+
 func (r *Redis) Set(key string, value any, ttl int) error {
-	err := r.cache.Set(context.Background(), key, value, time.Duration(ttl)*time.Second).Err()
-	return err
+	return r.cache.Set(context.Background(), key, value, time.Duration(ttl)*time.Second).Err()
+}
+
+func (r *Redis) Delete(key string) error {
+	return r.cache.Del(context.Background(), key).Err()
 }
