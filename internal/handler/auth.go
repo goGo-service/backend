@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"bytes"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
@@ -9,12 +8,9 @@ import (
 	"fmt"
 	"github.com/goGo-service/back/internal"
 	"github.com/goGo-service/back/internal/models"
-	"github.com/goccy/go-json"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"golang.org/x/net/context"
 	"io"
-	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -54,7 +50,7 @@ func (h *Handler) redirectUrl(c *gin.Context) {
 	codeChallenge := base64.RawURLEncoding.EncodeToString(sha2.Sum(nil))
 	state, _ := randomBytesInHex(24)
 
-	err = h.RedisClient.Set(context.Background(), state, codeVerifier, 10&time.Minute).Err()
+	err = h.redisClient.Set(context.Background(), state, codeVerifier, 10&time.Minute).Err()
 	if err != nil {
 		c.JSON(500, gin.H{"error": "failed to save codeVerifier in cache"})
 	}
@@ -82,7 +78,7 @@ func (h *Handler) signUp(c *gin.Context) {
 		newErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	vkUserId, err := h.RedisClient.Get(context.Background(), requestBody.Code).Result()
+	vkUserId, err := h.redisClient.Get(context.Background(), requestBody.Code).Result()
 	if err != nil {
 		newErrorResponse(c, http.StatusBadRequest, "invalid user_id")
 		return
@@ -100,7 +96,7 @@ func (h *Handler) signUp(c *gin.Context) {
 		newErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	h.RedisClient.Del(context.Background(), requestBody.Code)
+	h.redisClient.Del(context.Background(), requestBody.Code)
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &models.TokenClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
@@ -137,70 +133,33 @@ func (h *Handler) signIn(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error_text": "Invalid request"})
 		return
 	}
-
-	codeVerifier, err := h.RedisClient.Get(context.Background(), requestBody.State).Result()
-	if err != nil || codeVerifier == "" {
-		newErrorResponse(c, http.StatusBadRequest, "invalid state")
-	}
-
-	data := vkidTokenRequest{
-		ClientId:     viper.GetInt("VKID_APP_ID"),
-		GrantType:    "authorization_code",
-		DeviceId:     requestBody.DeviceId,
-		Code:         requestBody.Code,
-		CodeVerifier: codeVerifier,
-		RedirectUri:  viper.GetString("VKID_REDIRECT_URL"),
-		Scope:        "email",
-	}
-	jsonData, err := json.Marshal(data)
+	id, vkidAT, err := h.vkidUC.GetUserIdAndAT(requestBody.Code, requestBody.State, requestBody.DeviceId)
 	if err != nil {
-		logrus.Fatalf("Ошибка сериализации данных: %v", err)
-	}
-
-	response, err := http.Post("https://id.vk.com/oauth2/auth", "application/json", bytes.NewBuffer(jsonData))
-	if err != nil {
-		logrus.Fatalf("failed to send request: %v", err)
-	}
-	defer func() {
-		if err := response.Body.Close(); err != nil {
-			log.Printf("error closing response body: %v", err)
-		}
-	}()
-	body, err := io.ReadAll(response.Body)
-	if err != nil {
-		logrus.Fatalf("Ошибка чтения ответа: %v", err)
-	}
-	var responseData vkidTokenResponse
-
-	err = json.Unmarshal(body, &responseData)
-	if err != nil {
-		logrus.Fatalf("Ошибка парсинга JSON: %v", err)
-	}
-
-	if responseData.Error != "" || responseData.ErrorDescription != "" {
 		newErrorResponse(c, http.StatusUnauthorized, "the provided request was invalid")
 		return
 	}
 
-	user, err := h.services.GetUserByVkId(responseData.UserId)
+	user, err := h.userUC.GetUserByVkId(id)
 	if err != nil {
-		userInfo, err := h.services.VKID.GetUserInfo(responseData.AccessToken)
+		newErrorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	if user == nil {
+		userInfo, err := h.vkidUC.GetUserInfo(vkidAT, requestBody.Code)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error_text": "invalid access token"})
 			return
 		}
-		err = h.RedisClient.Set(context.Background(), requestBody.Code, responseData.UserId, 10&time.Minute).Err()
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
-		}
 
 		c.JSON(200, gin.H{
 			"action":     "register",
-			"first_name": userInfo.Response[0].FirstName,
-			"last_name":  userInfo.Response[0].LastName,
-			"email":      userInfo.Response[0].Email,
+			"first_name": userInfo.FirstName,
+			"last_name":  userInfo.LastName,
+			"email":      userInfo.Email,
 		})
 		return
+
 	}
 
 	token, err := h.authUC.Auth(user.Id)
@@ -230,7 +189,7 @@ func (h *Handler) profile(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header is required"})
 		return
 	}
-	user, err := h.profileUC.Profile(authHeader)
+	user, err := h.userUC.GetByAccessToken(authHeader)
 	if err != nil {
 		switch err {
 		case internal.AccessTokenRequiredError:

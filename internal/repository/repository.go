@@ -17,6 +17,7 @@ type User interface {
 type Cache interface {
 	GetString(key string) (string, error)
 	GetInt(key string) (int, error)
+	Set(key string, value any, ttl int) error
 }
 
 type Repository struct {

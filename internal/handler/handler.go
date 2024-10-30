@@ -14,28 +14,32 @@ type authUseCase interface {
 	RefreshToken(oldToken string) (*models.TokenPair, error)
 }
 
-type ProfileUseCase interface {
-	Profile(authHeader string) (*models.User, error)
+type UserUseCase interface {
+	GetByAccessToken(authHeader string) (*models.User, error)
 	CreateUser(user models.User) (int, error)
+	GetUserByVkId(id int64) (*models.User, error)
 }
 
 type VKIDUseCase interface {
-	exchangeCode(code string) (int64, string)
+	GetUserIdAndAT(code string, deviceId string, state string) (int64, string, error)
+	GetUserInfo(accessToken string, code string) (*models.VKIDUserInfo, error)
 }
 
 type Handler struct {
 	services    *service.Service
-	RedisClient *redis.Client
+	redisClient *redis.Client
 	authUC      authUseCase
-	profileUC   ProfileUseCase
+	userUC      UserUseCase
+	vkidUC      VKIDUseCase
 }
 
-func NewHandler(services *service.Service, redisClient *redis.Client, profileUC ProfileUseCase, authUC authUseCase) *Handler {
+func NewHandler(services *service.Service, redisClient *redis.Client, userUC UserUseCase, authUC authUseCase, vkidUC VKIDUseCase) *Handler {
 	return &Handler{
 		services:    services,
-		RedisClient: redisClient,
-		profileUC:   profileUC,
+		redisClient: redisClient,
+		userUC:      userUC,
 		authUC:      authUC,
+		vkidUC:      vkidUC,
 	}
 }
 

@@ -3,6 +3,7 @@ package service
 import (
 	"bytes"
 	"fmt"
+	"github.com/goGo-service/back/internal/models"
 	"github.com/goGo-service/back/internal/repository"
 	"github.com/goccy/go-json"
 	"github.com/sirupsen/logrus"
@@ -19,10 +20,7 @@ const (
 
 type UserResponse struct {
 	Response []struct {
-		ID        int    `json:"id"`
-		FirstName string `json:"first_name"`
-		LastName  string `json:"last_name"`
-		Email     string `json:"email"`
+		models.VKIDUserInfo
 	} `json:"response"`
 }
 
@@ -128,4 +126,9 @@ func (s *VKIDService) ExchangeCode(code string, deviceId string, state string) (
 		return nil, fmt.Errorf(responseData.Error, responseData.ErrorDescription)
 	}
 	return &responseData, nil
+}
+
+func (s *VKIDService) CacheVKIDUser(code string, id int64) error {
+	err := s.cache.Set(code, id, 30*60)
+	return err
 }

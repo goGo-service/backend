@@ -1,6 +1,8 @@
 package user
 
 import (
+	"database/sql"
+	"errors"
 	"fmt"
 	"github.com/goGo-service/back/internal"
 	"github.com/goGo-service/back/internal/models"
@@ -35,7 +37,11 @@ func (r *Postgres) GetUserByVkId(vkId int64) (*models.User, error) {
 	query := fmt.Sprintf("SELECT * FROM %s WHERE vk_id = $1", internal.UsersTable)
 	row := r.db.QueryRow(query, vkId)
 	if err := row.Scan(&user.Id, &user.VkID, &user.FirstName, &user.LastName, &user.Username, &user.Email); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
 		fmt.Println("Error executing query:", err)
+
 		return nil, err
 	}
 

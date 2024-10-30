@@ -1,7 +1,7 @@
 package service
 
 import (
-	"errors"
+	"fmt"
 	"github.com/goGo-service/back/internal/models"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/spf13/viper"
@@ -67,7 +67,7 @@ func (s *TokenService) ParseToken(tokenString string) (*models.TokenClaims, erro
 	if claims, ok := token.Claims.(*models.TokenClaims); ok && token.Valid {
 		return claims, nil
 	} else {
-		return nil, errors.New("invalid token")
+		return nil, fmt.Errorf("invalid token")
 	}
 
 }

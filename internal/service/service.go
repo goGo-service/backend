@@ -22,6 +22,7 @@ type User interface {
 type VKID interface {
 	GetUserInfo(accessToken string) (*UserResponse, error)
 	ExchangeCode(code string, deviceId string, state string) (*VkidTokenResponse, error)
+	CacheVKIDUser(code string, id int64) error
 }
 
 type Service struct {

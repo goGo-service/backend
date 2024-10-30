@@ -17,7 +17,7 @@ func NewUserUseCase(service *service.Service) *UserUseCase {
 	}
 }
 
-func (u *UserUseCase) Profile(authHeader string) (*models.User, error) {
+func (u *UserUseCase) GetByAccessToken(authHeader string) (*models.User, error) {
 	accessToken := strings.Split(authHeader, " ")[1]
 
 	if accessToken == "" {
@@ -42,4 +42,17 @@ func (u *UserUseCase) CreateUser(user models.User) (int, error) {
 	}
 
 	return userId, err
+}
+
+func (u *UserUseCase) GetUserByVkId(id int64) (*models.User, error) {
+	user, err := u.services.GetUserByVkId(id)
+	if user == nil {
+		return nil, nil
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
 }

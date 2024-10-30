@@ -6,29 +6,11 @@ import (
 	"github.com/spf13/viper"
 	"golang.org/x/net/context"
 	"strconv"
+	"time"
 )
 
 type Redis struct {
 	cache *redis.Client
-}
-
-func (r *Redis) GetString(key string) (string, error) {
-	result, err := r.cache.Get(context.Background(), key).Result()
-	if err != nil {
-		return "", err
-	}
-
-	return result, nil
-}
-
-func (r *Redis) GetInt(key string) (int, error) {
-	strRes, err := r.GetString(key)
-	res, err := strconv.Atoi(strRes)
-	if err != nil {
-		return 0, err
-	}
-
-	return res, nil
 }
 
 var ctx = context.Background()
@@ -66,4 +48,28 @@ func NewRedisDB() (*redis.Client, error) {
 	}
 
 	return client, nil
+}
+
+func (r *Redis) GetString(key string) (string, error) {
+	result, err := r.cache.Get(context.Background(), key).Result()
+	if err != nil {
+		return "", err
+	}
+
+	return result, nil
+}
+
+func (r *Redis) GetInt(key string) (int, error) {
+	strRes, err := r.GetString(key)
+	res, err := strconv.Atoi(strRes)
+	if err != nil {
+		return 0, err
+	}
+
+	return res, nil
+}
+
+func (r *Redis) Set(key string, value any, ttl int) error {
+	err := r.cache.Set(context.Background(), key, value, time.Duration(ttl)*time.Second).Err()
+	return err
 }

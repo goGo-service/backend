@@ -9,6 +9,7 @@ import (
 	"github.com/goGo-service/back/internal/service"
 	"github.com/goGo-service/back/internal/usecase/authUseCase"
 	"github.com/goGo-service/back/internal/usecase/userUseCase"
+	"github.com/goGo-service/back/internal/usecase/vkidUseCase"
 	"github.com/jmoiron/sqlx"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
@@ -65,8 +66,9 @@ func main() {
 	// create usecases
 	authUC := authUseCase.NewAuthUseCase(services)
 	profileUC := userUseCase.NewUserUseCase(services)
+	vkidUC := vkidUseCase.NewVKIDUseCase(services)
 
-	handlers := handler.NewHandler(services, redisClient, profileUC, authUC)
+	handlers := handler.NewHandler(services, redisClient, profileUC, authUC, vkidUC)
 	srv := new(goGO.Server)
 
 	if err := srv.Run(viper.GetString("HOST_PORT"), handlers.InitRoutes()); err != nil {
