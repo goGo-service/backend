@@ -3,6 +3,7 @@ package vkidUseCase
 import (
 	"github.com/goGo-service/back/internal/models"
 	"github.com/goGo-service/back/internal/service"
+	"github.com/spf13/viper"
 )
 
 type VKIDUseCase struct {
@@ -13,6 +14,25 @@ func NewVKIDUseCase(service *service.Service) *VKIDUseCase {
 	return &VKIDUseCase{
 		services: service,
 	}
+}
+
+func (u *VKIDUseCase) GetRedirectUrl() (*models.RedirectUrl, error) {
+	url := viper.GetString("VKID_REDIRECT_URL")
+	appId := viper.GetInt("VKID_APP_ID")
+
+	state, codeChallenge, err := u.services.VKID.GenerateStateAndCodeChallenge()
+	if err != nil {
+		return nil, err
+	}
+
+	redirectUrl := &models.RedirectUrl{
+		AppId:         appId,
+		RedirectUrl:   url,
+		State:         state,
+		CodeChallenge: codeChallenge,
+	}
+
+	return redirectUrl, nil
 }
 
 func (u *VKIDUseCase) GetUserIdAndAT(code string, deviceId string, state string) (int64, string, error) {
@@ -34,7 +54,8 @@ func (u *VKIDUseCase) GetUserInfo(accessToken string, code string) (*models.VKID
 		ID:        info.Response[0].ID,
 		FirstName: info.Response[0].FirstName,
 		LastName:  info.Response[0].LastName,
-		Email:     info.Response[0].Email,
+		//TODO: разобрать причину пустого email!!!
+		Email: info.Response[0].Email,
 	}
 	err = u.services.VKID.CacheVKID(code, userInfo.ID)
 	if err != nil {

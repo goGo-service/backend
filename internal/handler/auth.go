@@ -1,21 +1,11 @@
 package handler
 
 import (
-	"crypto/rand"
-	"crypto/sha256"
-	"encoding/base64"
-	"encoding/hex"
-	"fmt"
+	"github.com/gin-gonic/gin"
 	"github.com/goGo-service/back/internal"
 	"github.com/goGo-service/back/internal/models"
 	"github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
-	"golang.org/x/net/context"
-	"io"
 	"net/http"
-	"time"
-
-	"github.com/gin-gonic/gin"
 )
 
 type VKResponse struct {
@@ -25,30 +15,8 @@ type VKResponse struct {
 	Email       string `json:"email"`
 }
 
-func randomBytesInHex(count int) (string, error) {
-	buf := make([]byte, count)
-	_, err := io.ReadFull(rand.Reader, buf)
-	if err != nil {
-		return "", fmt.Errorf("could not generate %d random bytes: %v", count, err)
-	}
-
-	return hex.EncodeToString(buf), nil
-}
-
 func (h *Handler) redirectUrl(c *gin.Context) {
-	redirectUrl := viper.GetString("VKID_REDIRECT_URL")
-	appId := viper.GetString("VKID_APP_ID")
-	codeVerifier, _ := randomBytesInHex(32)
-	sha2 := sha256.New()
-
-	_, err := io.WriteString(sha2, codeVerifier)
-	if err != nil {
-		return
-	}
-	codeChallenge := base64.RawURLEncoding.EncodeToString(sha2.Sum(nil))
-	state, _ := randomBytesInHex(24)
-
-	err = h.redisClient.Set(context.Background(), state, codeVerifier, 10&time.Minute).Err()
+	res, err := h.vkidUC.GetRedirectUrl()
 	if err != nil {
 		c.JSON(500, gin.H{"error": "failed to save codeVerifier in cache"})
 		return
@@ -56,10 +24,10 @@ func (h *Handler) redirectUrl(c *gin.Context) {
 
 	scope := "email"
 	c.JSON(200, gin.H{
-		"app_id":         appId,
-		"redirect_url":   redirectUrl,
-		"state":          state,
-		"code_challenge": codeChallenge,
+		"app_id":         res.AppId,
+		"redirect_url":   res.RedirectUrl,
+		"state":          res.State,
+		"code_challenge": res.CodeChallenge,
 		"scope":          scope,
 	})
 }

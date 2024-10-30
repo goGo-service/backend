@@ -2,6 +2,10 @@ package service
 
 import (
 	"bytes"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"github.com/goGo-service/back/internal/models"
 	"github.com/goGo-service/back/internal/repository"
@@ -140,6 +144,39 @@ func (s *VKIDService) GetCachedVKID(code string) (int64, error) {
 	}
 	return vkid, nil
 }
+
 func (s *VKIDService) DeleteCachedVKID(code string) error {
 	return s.cache.Delete(code)
+}
+
+func (s *VKIDService) GenerateStateAndCodeChallenge() (string, string, error) {
+	codeVerifier, _ := randomBytesInHex(32)
+	sha2 := sha256.New()
+
+	_, err := io.WriteString(sha2, codeVerifier)
+	if err != nil {
+		return "", "", err
+	}
+
+	codeChallenge := base64.RawURLEncoding.EncodeToString(sha2.Sum(nil))
+	state, err := randomBytesInHex(24)
+	if err != nil {
+		return "", "", err
+	}
+	err = s.cache.Set(state, codeChallenge, 30*60)
+	if err != nil {
+		return "", "", err
+	}
+
+	return state, codeChallenge, nil
+}
+
+func randomBytesInHex(count int) (string, error) {
+	buf := make([]byte, count)
+	_, err := io.ReadFull(rand.Reader, buf)
+	if err != nil {
+		return "", fmt.Errorf("could not generate %d random bytes: %v", count, err)
+	}
+
+	return hex.EncodeToString(buf), nil
 }

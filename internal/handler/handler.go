@@ -25,6 +25,7 @@ type VKIDUseCase interface {
 	GetUserInfo(accessToken string, code string) (*models.VKIDUserInfo, error)
 	GetVKID(code string) (int64, error)
 	DeleteVKID(code string) error
+	GetRedirectUrl() (*models.RedirectUrl, error)
 }
 
 type Handler struct {

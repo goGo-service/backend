@@ -25,6 +25,7 @@ type VKID interface {
 	CacheVKID(code string, id int64) error
 	GetCachedVKID(code string) (int64, error)
 	DeleteCachedVKID(code string) error
+	GenerateStateAndCodeChallenge() (string, string, error)
 }
 
 type Service struct {
