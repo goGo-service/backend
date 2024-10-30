@@ -24,6 +24,9 @@ func (u *UserUseCase) GetByAccessToken(authHeader string) (*models.User, error) 
 		return nil, internal.AccessTokenRequiredError
 	}
 	tokenClaims, err := u.services.Token.ParseToken(accessToken)
+	if err != nil {
+		return nil, internal.AccessTokenRequiredError
+	}
 	user, err := u.services.User.GetUser(tokenClaims.UserId)
 	if err != nil {
 		return nil, internal.InternalServiceError

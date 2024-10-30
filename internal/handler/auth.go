@@ -185,11 +185,13 @@ func (h *Handler) profile(c *gin.Context) {
 func (h *Handler) refreshToken(c *gin.Context) {
 	cookie, err := c.Cookie("refresh_token")
 	if err != nil {
+		newErrorResponse(c, http.StatusBadRequest, "token is required")
 		return
 	}
 
 	tokens, err := h.authUC.RefreshToken(cookie)
 	if err != nil {
+		newErrorResponse(c, http.StatusBadRequest, "token expired or invalid")
 		return
 	}
 	http.SetCookie(c.Writer, &http.Cookie{
