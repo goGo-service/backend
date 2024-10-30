@@ -53,7 +53,7 @@ func (r *Postgres) GetUserById(userId int) (*models.User, error) {
 
 	query := fmt.Sprintf("SELECT * FROM %s WHERE id = $1", internal.UsersTable)
 	row := r.db.QueryRow(query, userId)
-	if err := row.Scan(&user.Id, &user.VkID, &user.FirstName, &user.LastName, &user.Username, &user.Email); err != nil {
+	if err := row.Scan(&user.Id, &user.VkID, &user.FirstName, &user.LastName, &user.Username, &user.Email, &user.CreatedAt, &user.UpdatedAt); err != nil {
 		fmt.Println("Error executing query:", err)
 		return nil, err
 	}

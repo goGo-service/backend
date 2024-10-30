@@ -163,7 +163,7 @@ func (s *VKIDService) GenerateStateAndCodeChallenge() (string, string, error) {
 	if err != nil {
 		return "", "", err
 	}
-	err = s.cache.Set(state, codeChallenge, 30*60)
+	err = s.cache.Set(state, codeVerifier, 30*60)
 	if err != nil {
 		return "", "", err
 	}

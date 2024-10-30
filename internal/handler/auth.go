@@ -111,9 +111,9 @@ func (h *Handler) signIn(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error_text": "Invalid request"})
 		return
 	}
-	id, vkidAT, err := h.vkidUC.GetUserIdAndAT(requestBody.Code, requestBody.State, requestBody.DeviceId)
+	id, vkidAT, err := h.vkidUC.GetUserIdAndAT(requestBody.Code, requestBody.DeviceId, requestBody.State)
 	if err != nil {
-		newErrorResponse(c, http.StatusUnauthorized, "the provided request was invalid")
+		newErrorResponse(c, http.StatusBadRequest, "the provided request was invalid")
 		return
 	}
 
@@ -126,7 +126,7 @@ func (h *Handler) signIn(c *gin.Context) {
 	if user == nil {
 		userInfo, err := h.vkidUC.GetUserInfo(vkidAT, requestBody.Code)
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error_text": "invalid access token"})
+			c.JSON(http.StatusBadRequest, gin.H{"error_text": "invalid access token"})
 			return
 		}
 
