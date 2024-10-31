@@ -69,6 +69,7 @@ func (h *Handler) InitRoutes() *gin.Engine {
 		auth.GET("/token/refresh", h.refreshToken)
 	}
 	router.GET("/profile", h.profile)
+	router.POST("/profile", h.profile)
 	router.GET("/callback", func(c *gin.Context) {
 		c.JSON(200, "")
 	})

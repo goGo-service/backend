@@ -2,18 +2,10 @@ package handler
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/goGo-service/back/internal"
 	"github.com/goGo-service/back/internal/models"
 	"github.com/sirupsen/logrus"
 	"net/http"
 )
-
-type VKResponse struct {
-	AccessToken string `json:"access_token"`
-	ExpiresIn   int    `json:"expires_in"`
-	UserID      string `json:"user_id"`
-	Email       string `json:"email"`
-}
 
 func (h *Handler) redirectUrl(c *gin.Context) {
 	res, err := h.vkidUC.GetRedirectUrl()
@@ -159,27 +151,6 @@ func (h *Handler) signIn(c *gin.Context) {
 		"action":       "auth",
 		"access_token": token.AccessToken,
 	})
-}
-
-func (h *Handler) profile(c *gin.Context) {
-	authHeader := c.GetHeader("Authorization")
-	if authHeader == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header is required"})
-		return
-	}
-	user, err := h.userUC.GetByAccessToken(authHeader)
-	if err != nil {
-		switch err {
-		case internal.AccessTokenRequiredError:
-			c.JSON(http.StatusBadRequest, gin.H{"error": "access token is required"})
-		case internal.InternalServiceError:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		case internal.UserNotFoundError:
-			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
-		}
-		return
-	}
-	c.JSON(http.StatusOK, user)
 }
 
 func (h *Handler) refreshToken(c *gin.Context) {

@@ -36,7 +36,7 @@ func (r *Postgres) GetUserByVkId(vkId int64) (*models.User, error) {
 
 	query := fmt.Sprintf("SELECT * FROM %s WHERE vk_id = $1", internal.UsersTable)
 	row := r.db.QueryRow(query, vkId)
-	if err := row.Scan(&user.Id, &user.VkID, &user.FirstName, &user.LastName, &user.Username, &user.Email); err != nil {
+	if err := row.Scan(&user.Id, &user.VkID, &user.FirstName, &user.LastName, &user.Username, &user.Email, &user.CreatedAt, &user.UpdatedAt); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
