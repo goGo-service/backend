@@ -62,19 +62,12 @@ func (h *Handler) InitRoutes() *gin.Engine {
 	{
 		auth.POST("/sign-up", h.signUp)
 		auth.POST("/sign-in", h.signIn)
-		auth.GET("/logout", func(c *gin.Context) {
-			c.JSON(200, "")
-		})
+		auth.GET("/logout", h.logout)
 		auth.GET("/redirect-url", h.redirectUrl)
 		auth.GET("/token/refresh", h.refreshToken)
 	}
 	router.GET("/profile", h.profile)
 	router.POST("/profile", h.profile)
-	router.GET("/callback", func(c *gin.Context) {
-		c.JSON(200, "")
-	})
-	router.POST("/callback", func(c *gin.Context) {
-		c.JSON(200, "")
-	})
+
 	return router
 }

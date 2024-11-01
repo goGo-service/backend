@@ -79,7 +79,7 @@ func (h *Handler) signUp(c *gin.Context) {
 		Name:     "refresh_token",
 		Value:    tokenPair.RefreshToken,
 		Path:     "/",
-		MaxAge:   3600,
+		MaxAge:   60 * 60 * 24 * 7,
 		HttpOnly: true,
 		SameSite: http.SameSiteNoneMode,
 		Secure:   true,
@@ -141,7 +141,7 @@ func (h *Handler) signIn(c *gin.Context) {
 		Name:     "refresh_token",
 		Value:    token.RefreshToken,
 		Path:     "/",
-		MaxAge:   3600,
+		MaxAge:   60 * 60 * 24 * 7,
 		HttpOnly: true,
 		SameSite: http.SameSiteNoneMode,
 		Secure:   true,
@@ -169,7 +169,7 @@ func (h *Handler) refreshToken(c *gin.Context) {
 		Name:     "refresh_token",
 		Value:    tokens.RefreshToken,
 		Path:     "/",
-		MaxAge:   3600,
+		MaxAge:   60 * 60 * 24 * 7,
 		HttpOnly: true,
 		Secure:   true,
 		SameSite: http.SameSiteNoneMode,
@@ -177,5 +177,22 @@ func (h *Handler) refreshToken(c *gin.Context) {
 	})
 	c.JSON(200, gin.H{
 		"access_token": tokens.AccessToken,
+	})
+}
+
+func (h *Handler) logout(c *gin.Context) {
+	http.SetCookie(c.Writer, &http.Cookie{
+		Name:     "refresh_token",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   0,
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteNoneMode,
+		Domain:   "localhost",
+	})
+
+	c.JSON(200, gin.H{
+		"status": "success",
 	})
 }

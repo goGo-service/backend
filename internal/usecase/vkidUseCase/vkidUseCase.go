@@ -4,6 +4,7 @@ import (
 	"github.com/goGo-service/back/internal/models"
 	"github.com/goGo-service/back/internal/service"
 	"github.com/spf13/viper"
+	"strconv"
 )
 
 type VKIDUseCase struct {
@@ -45,19 +46,16 @@ func (u *VKIDUseCase) GetUserIdAndAT(code string, deviceId string, state string)
 }
 
 func (u *VKIDUseCase) GetUserInfo(accessToken string, code string) (*models.VKIDUserInfo, error) {
-	info, err := u.services.VKID.GetUserInfo(accessToken)
+	userInfo, err := u.services.VKID.GetUserInfo(accessToken)
 	if err != nil {
 		return nil, err
 	}
 
-	userInfo := &models.VKIDUserInfo{
-		ID:        info.Response[0].ID,
-		FirstName: info.Response[0].FirstName,
-		LastName:  info.Response[0].LastName,
-		//TODO: разобрать причину пустого email!!!
-		Email: info.Response[0].Email,
+	vkid, err := strconv.ParseInt(userInfo.Id, 10, 64)
+	if err != nil {
+		return nil, err
 	}
-	err = u.services.VKID.CacheVKID(code, userInfo.ID)
+	err = u.services.VKID.CacheVKID(code, vkid)
 	if err != nil {
 		return nil, err
 	}

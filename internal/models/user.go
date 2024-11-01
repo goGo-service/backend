@@ -14,8 +14,13 @@ type User struct {
 }
 
 type VKIDUserInfo struct {
-	ID        int64  `json:"id"`
-	FirstName string `json:"first_name"`
-	LastName  string `json:"last_name"`
-	Email     string `json:"email"`
+	Id         string `json:"user_id"`
+	FirstName  string `json:"first_name"`
+	LastName   string `json:"last_name"`
+	Phone      string `json:"phone"`
+	Avatar     string `json:"avatar"`
+	Email      string `json:"email"`
+	Sex        int    `json:"sex"`
+	IsVerified bool   `json:"is_verified"`
+	Birthday   string `json:"birthday"`
 }

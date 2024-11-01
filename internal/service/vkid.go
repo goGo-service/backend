@@ -17,17 +17,6 @@ import (
 	"net/http"
 )
 
-const (
-	apiURL     = "https://api.vk.com/method/users.get"
-	apiVersion = "5.199"
-)
-
-type UserResponse struct {
-	Response []struct {
-		models.VKIDUserInfo
-	} `json:"response"`
-}
-
 type VKIDService struct {
 	appId           int
 	vkidRedirectUrl string
@@ -38,25 +27,53 @@ func NewVKIDService(cache repository.Cache) *VKIDService {
 	return &VKIDService{appId: viper.GetInt("VKID_APP_ID"), vkidRedirectUrl: viper.GetString("VKID_REDIRECT_URL"), cache: cache}
 }
 
-func (s *VKIDService) GetUserInfo(accessToken string) (*UserResponse, error) {
-	vkAPIURL := fmt.Sprintf("%s?access_token=%s&v=%s", apiURL, accessToken, apiVersion)
-	resp, err := http.Get(vkAPIURL)
+type userInfoRequest struct {
+	ClientId    int    `json:"client_id"`
+	AccessToken string `json:"access_token"`
+}
+
+type userInfoResponse struct {
+	models.VKIDUserInfo `json:"user"`
+	Error               string `json:"error"`
+	ErrorDescription    string `json:"error_description"`
+	State               string `json:"state"`
+}
+
+func (s *VKIDService) GetUserInfo(accessToken string) (*models.VKIDUserInfo, error) {
+	data := userInfoRequest{
+		AccessToken: accessToken,
+		ClientId:    s.appId,
+	}
+	jsonData, err := json.Marshal(data)
 	if err != nil {
-		return nil, err
+		logrus.Fatalf("Ошибка сериализации данных: %v", err)
 	}
-	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
+	response, err := http.Post("https://id.vk.com/oauth2/user_info", "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
-		return nil, err
+		logrus.Fatalf("failed to send request: %v", err)
+	}
+	defer func() {
+		if err := response.Body.Close(); err != nil {
+			log.Printf("error closing response body: %v", err)
+		}
+	}()
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		logrus.Fatalf("Ошибка чтения ответа: %v", err)
+	}
+	var responseData userInfoResponse
+
+	err = json.Unmarshal(body, &responseData)
+	if err != nil {
+		logrus.Fatalf("Ошибка парсинга JSON: %v", err)
 	}
 
-	var userResp UserResponse
-	if err := json.Unmarshal(body, &userResp); err != nil {
-		return nil, err
+	if responseData.Error != "" || responseData.ErrorDescription != "" {
+		return nil, fmt.Errorf("error: %s, desc: %s", responseData.Error, responseData.ErrorDescription)
 	}
 
-	return &userResp, nil
+	return &responseData.VKIDUserInfo, nil
 }
 
 type vkidTokenRequest struct {

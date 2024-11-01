@@ -20,7 +20,7 @@ type User interface {
 }
 
 type VKID interface {
-	GetUserInfo(accessToken string) (*UserResponse, error)
+	GetUserInfo(accessToken string) (*models.VKIDUserInfo, error)
 	ExchangeCode(code string, deviceId string, state string) (*VkidTokenResponse, error)
 	CacheVKID(code string, id int64) error
 	GetCachedVKID(code string) (int64, error)
