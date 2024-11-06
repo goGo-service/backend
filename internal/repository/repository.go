@@ -12,6 +12,7 @@ type User interface {
 	CreateUser(user models.User) (int, error)
 	GetUserByVkId(vkId int64) (*models.User, error)
 	GetUserById(userId int) (*models.User, error)
+	SaveRefreshToken(token models.RefreshToken) error
 }
 
 type Cache interface {

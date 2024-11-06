@@ -8,7 +8,7 @@ import (
 
 type Token interface {
 	GenerateAccessToken(userId int, sessionID string) string
-	GenerateRefreshToken(userId int, sessionID string) string
+	GenerateRefreshToken(userId int, sessionID string) (string, error)
 	RefreshTokens(refreshToken string) (*models.TokenPair, error)
 	ParseToken(token string) (*models.TokenClaims, error)
 }
@@ -37,7 +37,7 @@ type Service struct {
 func NewService(repos *repository.Repository) *Service {
 	return &Service{
 		User:  NewUserService(repos.User),
-		Token: NewTokenService(viper.GetString("SECRET_KEY")),
+		Token: NewTokenService(repos.User, viper.GetString("SECRET_KEY")),
 		VKID:  NewVKIDService(repos.Cache),
 	}
 }

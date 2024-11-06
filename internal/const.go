@@ -7,6 +7,7 @@ import (
 const (
 	vkIdUsersTable  = "vk_id_users"
 	UsersTable      = "users"
+	UserTokensTable = "user_tokens"
 	roomsTable      = "rooms"
 	rolesTable      = "roles"
 	roomsUsersTable = "rooms_users"

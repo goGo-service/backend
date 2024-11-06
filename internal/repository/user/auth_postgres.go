@@ -54,9 +54,18 @@ func (r *Postgres) GetUserById(userId int) (*models.User, error) {
 	query := fmt.Sprintf("SELECT * FROM %s WHERE id = $1", internal.UsersTable)
 	row := r.db.QueryRow(query, userId)
 	if err := row.Scan(&user.Id, &user.VkID, &user.FirstName, &user.LastName, &user.Username, &user.Email, &user.CreatedAt, &user.UpdatedAt); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
 		fmt.Println("Error executing query:", err)
 		return nil, err
 	}
 
 	return &user, nil
+}
+
+func (r *Postgres) SaveRefreshToken(token models.RefreshToken) error {
+	query := fmt.Sprintf("INSERT INTO %s (user_id, session_id, refresh_token, expire_at) VALUES ($1, $2, $3, $4) RETURNING id", internal.UserTokensTable)
+	_, err := r.db.Exec(query, token.UserID, token.SessionID, token.RefreshToken, token.ExpireAt)
+	return err
 }
