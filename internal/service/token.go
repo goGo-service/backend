@@ -15,6 +15,7 @@ type TokenService struct {
 func NewTokenService(secretKey string) *TokenService {
 	return &TokenService{secretKey: secretKey}
 }
+
 func (s *TokenService) GenerateAccessToken(userId int, sessionID string) string {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &models.TokenClaims{
 		RegisteredClaims: jwt.RegisteredClaims{

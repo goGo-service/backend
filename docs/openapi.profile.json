@@ -29,6 +29,23 @@
             "$ref": "/openapi.auth.json#/components/responses/Unauthorized"
           }
         }
+      },
+      "patch": {
+        "description": "Изменения данных профиля",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserProfile"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Данные успешно изменены"
+          }
+        }
       }
     }
   },
@@ -50,6 +67,9 @@
             "type": "string"
           },
           "username": {
+            "type": "string"
+          },
+          "created_at": {
             "type": "string"
           }
         }

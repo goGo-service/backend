@@ -55,19 +55,19 @@ func (u *VKIDUseCase) GetUserInfo(accessToken string, code string) (*models.VKID
 	if err != nil {
 		return nil, err
 	}
-	err = u.services.VKID.CacheVKID(code, vkid)
+	err = u.services.VKID.CacheVKID(code, vkid, userInfo.Email)
 	if err != nil {
 		return nil, err
 	}
 	return userInfo, nil
 }
 
-func (u *VKIDUseCase) GetVKID(code string) (int64, error) {
-	vkid, err := u.services.VKID.GetCachedVKID(code)
+func (u *VKIDUseCase) GetVKID(code string) (int64, string, error) {
+	vkid, email, err := u.services.VKID.GetCachedVKID(code)
 	if err != nil {
-		return 0, err
+		return 0, "", err
 	}
-	return vkid, nil
+	return vkid, email, nil
 }
 
 func (u *VKIDUseCase) DeleteVKID(code string) error {

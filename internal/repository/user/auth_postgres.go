@@ -60,3 +60,21 @@ func (r *Postgres) GetUserById(userId int) (*models.User, error) {
 
 	return &user, nil
 }
+
+func (r *Postgres) UpdateUser(user *models.User) error {
+	query := fmt.Sprintf(`
+		UPDATE %s
+		SET first_name = COALESCE(NULLIF($1, ''), first_name),
+			last_name = COALESCE(NULLIF($2, ''), last_name),
+			username = COALESCE(NULLIF($3, ''), username)
+		WHERE id = $4
+	`, internal.UsersTable)
+
+	_, err := r.db.Exec(query, user.FirstName, user.LastName, user.Username, user.Id)
+	if err != nil {
+		fmt.Println("Error executing update query:", err)
+		return err
+	}
+
+	return nil
+}
