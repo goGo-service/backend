@@ -3,6 +3,7 @@ package service
 import (
 	"github.com/goGo-service/back/internal/models"
 	"github.com/goGo-service/back/internal/repository"
+	"github.com/google/uuid"
 	"github.com/spf13/viper"
 )
 
@@ -11,6 +12,7 @@ type Token interface {
 	GenerateRefreshToken(userId int, sessionID string) (string, error)
 	RefreshTokens(refreshToken string) (*models.TokenPair, error)
 	ParseToken(token string) (*models.TokenClaims, error)
+	VerifyRefreshToken(refreshToken string, sessionID uuid.UUID) error
 }
 
 type User interface {

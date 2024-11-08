@@ -5,6 +5,7 @@ import (
 	"github.com/goGo-service/back/internal/models"
 	"github.com/goGo-service/back/internal/repository"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"time"
 )
 
@@ -85,4 +86,18 @@ func (s *TokenService) ParseToken(tokenString string) (*models.TokenClaims, erro
 		return nil, fmt.Errorf("invalid token")
 	}
 
+}
+
+func (s *TokenService) VerifyRefreshToken(refreshToken string, sessionID uuid.UUID) error {
+	tokenData, err := s.repo.GetRefreshToken(refreshToken, sessionID)
+	if err != nil {
+		return err
+	}
+
+	if time.Now().After(tokenData.ExpireAt) {
+		fmt.Println("Token expired at:", tokenData.ExpireAt)
+		return fmt.Errorf("invalid or expired token")
+	}
+
+	return nil
 }

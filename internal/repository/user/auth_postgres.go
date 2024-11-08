@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/goGo-service/back/internal"
 	"github.com/goGo-service/back/internal/models"
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 )
@@ -68,4 +69,20 @@ func (r *Postgres) SaveRefreshToken(token models.RefreshToken) error {
 	query := fmt.Sprintf("INSERT INTO %s (user_id, session_id, refresh_token, expire_at) VALUES ($1, $2, $3, $4) RETURNING id", internal.UserTokensTable)
 	_, err := r.db.Exec(query, token.UserID, token.SessionID, token.RefreshToken, token.ExpireAt)
 	return err
+}
+
+func (r *Postgres) GetRefreshToken(refreshToken string, sessionID uuid.UUID) (*models.RefreshToken, error) {
+	var token models.RefreshToken
+
+	query := fmt.Sprintf("SELECT user_id, session_id, refresh_token, expire_at FROM %s WHERE refresh_token = $1 AND session_id = $2", internal.UserTokensTable)
+	row := r.db.QueryRow(query, refreshToken, sessionID)
+
+	if err := row.Scan(&token.UserID, &token.SessionID, &token.RefreshToken, &token.ExpireAt); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		fmt.Println("Error executing query:", err)
+		return nil, err
+	}
+	return &token, nil
 }

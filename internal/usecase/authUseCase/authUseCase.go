@@ -30,8 +30,12 @@ func (u *AuthUseCase) Auth(userId int) (*models.TokenPair, error) {
 	return tokenPair, nil
 }
 
-func (u *AuthUseCase) RefreshToken(oldToken string) (*models.TokenPair, error) {
-	//TODO: добавить проверку с бд
+func (u *AuthUseCase) RefreshToken(oldToken string, sessionId uuid.UUID) (*models.TokenPair, error) {
+	err := u.services.Token.VerifyRefreshToken(oldToken, sessionId)
+	if err != nil {
+		return nil, err
+	}
+
 	tokens, err := u.services.Token.RefreshTokens(oldToken)
 	if err != nil {
 		return nil, err

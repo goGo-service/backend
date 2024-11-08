@@ -4,6 +4,7 @@ import (
 	"github.com/goGo-service/back/internal/models"
 	"github.com/goGo-service/back/internal/repository/cache"
 	"github.com/goGo-service/back/internal/repository/user"
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/redis/go-redis/v9"
 )
@@ -13,6 +14,7 @@ type User interface {
 	GetUserByVkId(vkId int64) (*models.User, error)
 	GetUserById(userId int) (*models.User, error)
 	SaveRefreshToken(token models.RefreshToken) error
+	GetRefreshToken(token string, id uuid.UUID) (*models.RefreshToken, error)
 }
 
 type Cache interface {
