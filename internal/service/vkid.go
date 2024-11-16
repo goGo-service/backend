@@ -15,6 +15,8 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strconv"
+	"strings"
 )
 
 type VKIDService struct {
@@ -149,17 +151,31 @@ func (s *VKIDService) ExchangeCode(code string, deviceId string, state string) (
 	return &responseData, nil
 }
 
-func (s *VKIDService) CacheVKID(code string, id int64) error {
-	err := s.cache.Set(code, id, 30*60)
+func (s *VKIDService) CacheVKID(code string, id int64, email string) error {
+	vkidEmail := fmt.Sprintf("%d:%s", id, email)
+	err := s.cache.Set(code, vkidEmail, 30*60)
+
 	return err
 }
 
-func (s *VKIDService) GetCachedVKID(code string) (int64, error) {
-	vkid, err := s.cache.GetInt64(code)
+func (s *VKIDService) GetCachedVKID(code string) (int64, string, error) {
+	vkidEmail, err := s.cache.GetString(code)
 	if err != nil {
-		return 0, err
+		return 0, "", err
 	}
-	return vkid, nil
+	parts := strings.SplitN(vkidEmail, ":", 2)
+	if len(parts) != 2 {
+		return 0, "", fmt.Errorf("invalid format: %s", vkidEmail)
+	}
+
+	vkid, err := strconv.ParseInt(parts[0], 10, 64)
+	if err != nil {
+		return 0, "", fmt.Errorf("failed to parse vkid: %w", err)
+	}
+
+	email := parts[1]
+
+	return vkid, email, nil
 }
 
 func (s *VKIDService) DeleteCachedVKID(code string) error {

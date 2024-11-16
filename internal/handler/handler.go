@@ -18,12 +18,13 @@ type UserUseCase interface {
 	GetByAccessToken(authHeader string) (*models.User, error)
 	CreateUser(user models.User) (int, error)
 	GetUserByVkId(id int64) (*models.User, error)
+	UpdateUserFields(user *models.User, updates service.MutableUserFields) (bool, error)
 }
 
 type VKIDUseCase interface {
 	GetUserIdAndAT(code string, deviceId string, state string) (int64, string, error)
 	GetUserInfo(accessToken string, code string) (*models.VKIDUserInfo, error)
-	GetVKID(code string) (int64, error)
+	GetVKID(code string) (int64, string, error)
 	DeleteVKID(code string) error
 	GetRedirectUrl() (*models.RedirectUrl, error)
 }
@@ -51,8 +52,8 @@ func (h *Handler) InitRoutes() *gin.Engine {
 
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:5173", "https://welcome-satyr-easily.ngrok-free.app", "https://stallion-new-infinitely.ngrok-free.app"},
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}, // Явно перечисляем методы
-		AllowHeaders:     []string{"Content-Type", "Authorization"},           // Явно перечисляем заголовки
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"}, // Явно перечисляем методы
+		AllowHeaders:     []string{"Content-Type", "Authorization"},                    // Явно перечисляем заголовки
 		ExposeHeaders:    []string{"Content-Length"},
 		MaxAge:           12 * time.Hour,
 		AllowCredentials: true,
@@ -67,7 +68,7 @@ func (h *Handler) InitRoutes() *gin.Engine {
 		auth.GET("/token/refresh", h.refreshToken)
 	}
 	router.GET("/profile", h.profile)
-	router.POST("/profile", h.profile)
+	router.PATCH("/profile", h.editProfile)
 
 	return router
 }

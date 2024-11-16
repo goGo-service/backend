@@ -17,13 +17,14 @@ type User interface {
 	CreateUser(user models.User) (int, error)
 	GetUserByVkId(vkId int64) (*models.User, error)
 	GetUser(userId int) (*models.User, error)
+	UpdateUserFields(user *models.User, updates MutableUserFields) (bool, error)
 }
 
 type VKID interface {
 	GetUserInfo(accessToken string) (*models.VKIDUserInfo, error)
 	ExchangeCode(code string, deviceId string, state string) (*VkidTokenResponse, error)
-	CacheVKID(code string, id int64) error
-	GetCachedVKID(code string) (int64, error)
+	CacheVKID(code string, id int64, email string) error
+	GetCachedVKID(code string) (int64, string, error)
 	DeleteCachedVKID(code string) error
 	GenerateStateAndCodeChallenge() (string, string, error)
 }

@@ -37,7 +37,7 @@ func (h *Handler) signUp(c *gin.Context) {
 		newErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	vkId, err := h.vkidUC.GetVKID(requestBody.Code)
+	vkId, email, err := h.vkidUC.GetVKID(requestBody.Code)
 	if err != nil {
 		newErrorResponse(c, http.StatusBadRequest, "invalid user_id")
 		return
@@ -59,6 +59,7 @@ func (h *Handler) signUp(c *gin.Context) {
 	input.FirstName = requestBody.FirstName
 	input.LastName = requestBody.LastName
 	input.VkID = vkId
+	input.Email = email
 	id, err := h.userUC.CreateUser(input)
 	if err != nil {
 		newErrorResponse(c, http.StatusInternalServerError, err.Error())
@@ -118,6 +119,7 @@ func (h *Handler) signIn(c *gin.Context) {
 	if user == nil {
 		userInfo, err := h.vkidUC.GetUserInfo(vkidAT, requestBody.Code)
 		if err != nil {
+			logrus.Error(err.Error())
 			c.JSON(http.StatusBadRequest, gin.H{"error_text": "invalid access token"})
 			return
 		}

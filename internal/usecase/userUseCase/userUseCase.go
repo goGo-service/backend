@@ -59,3 +59,8 @@ func (u *UserUseCase) GetUserByVkId(id int64) (*models.User, error) {
 
 	return user, nil
 }
+
+func (u *UserUseCase) UpdateUserFields(user *models.User, updates service.MutableUserFields) (bool, error) {
+
+	return u.services.User.UpdateUserFields(user, updates)
+}
