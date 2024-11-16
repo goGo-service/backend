@@ -9,12 +9,7 @@ import (
 )
 
 func (h *Handler) profile(c *gin.Context) {
-	authHeader := c.GetHeader("Authorization")
-	if authHeader == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header is required"})
-		return
-	}
-	user, err := h.userUC.GetByAccessToken(authHeader)
+	user, err := h.userUC.GetUserById(c)
 	if err != nil {
 		switch {
 		case errors.Is(err, internal.AccessTokenRequiredError):
@@ -39,12 +34,7 @@ func (h *Handler) profile(c *gin.Context) {
 
 func (h *Handler) editProfile(c *gin.Context) {
 	//TODO: ручка для изменения полей юзера
-	authHeader := c.GetHeader("Authorization")
-	if authHeader == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header is required"})
-		return
-	}
-	user, err := h.userUC.GetByAccessToken(authHeader)
+	user, err := h.userUC.GetUserById(c)
 	if err != nil {
 		switch {
 		case errors.Is(err, internal.AccessTokenRequiredError):

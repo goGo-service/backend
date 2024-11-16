@@ -1,10 +1,10 @@
 package userUseCase
 
 import (
+	"github.com/gin-gonic/gin"
 	"github.com/goGo-service/back/internal"
 	"github.com/goGo-service/back/internal/models"
 	"github.com/goGo-service/back/internal/service"
-	"strings"
 )
 
 type UserUseCase struct {
@@ -17,24 +17,22 @@ func NewUserUseCase(service *service.Service) *UserUseCase {
 	}
 }
 
-func (u *UserUseCase) GetByAccessToken(authHeader string) (*models.User, error) {
-	accessToken := strings.Split(authHeader, " ")[1]
-
-	if accessToken == "" {
+func (u *UserUseCase) GetUserById(c *gin.Context) (*models.User, error) {
+	userID, exists := c.Get("userID")
+	if !exists {
 		return nil, internal.AccessTokenRequiredError
 	}
-	tokenClaims, err := u.services.Token.ParseToken(accessToken)
-	if err != nil {
-		return nil, internal.AccessTokenRequiredError
+	id, ok := userID.(int)
+	if !ok {
+		return nil, internal.InvalidUserIDError
 	}
-	user, err := u.services.User.GetUser(tokenClaims.UserId)
+	user, err := u.services.User.GetUser(id)
 	if err != nil {
 		return nil, internal.InternalServiceError
 	}
 	if user == nil {
 		return nil, internal.UserNotFoundError
 	}
-
 	return user, nil
 }
 

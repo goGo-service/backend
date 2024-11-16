@@ -4,6 +4,9 @@ import (
 	"fmt"
 	goGO "github.com/goGo-service/back"
 	"github.com/goGo-service/back/internal/handler"
+	"github.com/goGo-service/back/internal/middleware"
+	"github.com/goGo-service/back/internal/middleware/auth"
+	"github.com/goGo-service/back/internal/middleware/security"
 	"github.com/goGo-service/back/internal/repository"
 	"github.com/goGo-service/back/internal/repository/cache"
 	"github.com/goGo-service/back/internal/service"
@@ -68,8 +71,9 @@ func main() {
 	authUC := authUseCase.NewAuthUseCase(services)
 	profileUC := userUseCase.NewUserUseCase(services)
 	vkidUC := vkidUseCase.NewVKIDUseCase(services)
+	mw := middleware.NewMiddlewareManager(auth.NewAuthMiddleware(services), security.NewCorsMiddleware())
 
-	handlers := handler.NewHandler(services, redisClient, profileUC, authUC, vkidUC)
+	handlers := handler.NewHandler(services, redisClient, profileUC, authUC, vkidUC, mw)
 	srv := new(goGO.Server)
 
 	if err := srv.Run(viper.GetString("HOST_PORT"), handlers.InitRoutes()); err != nil {
