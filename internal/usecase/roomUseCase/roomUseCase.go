@@ -26,3 +26,20 @@ func (u *RoomUseCase) CreateNewRoom(room models.Room, userId int) (int, error) {
 	}
 	return roomId, nil
 }
+
+func (u *RoomUseCase) GetRoom(roomId int, userId int) (*models.Room, error) {
+	haveRight, err := u.services.Room.HaveAccess(userId, roomId)
+	if err != nil {
+		return nil, err
+	}
+	if !haveRight {
+		return nil, nil //TODO: мб стоит ошибку добавить другую
+	}
+
+	room, err := u.services.Room.GetRoom(roomId)
+	if err != nil {
+		return nil, err
+	}
+
+	return room, nil
+}
