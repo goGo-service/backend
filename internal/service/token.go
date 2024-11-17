@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/goGo-service/back/internal/models"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/spf13/viper"
+	"github.com/sirupsen/logrus"
 	"time"
 )
 
@@ -25,7 +25,7 @@ func (s *TokenService) GenerateAccessToken(userId int, sessionID string) string 
 		SessionId: sessionID,
 		UserId:    userId,
 	})
-	ss, _ := token.SignedString([]byte(viper.GetString("SECRET_KEY")))
+	ss, _ := token.SignedString([]byte(s.secretKey))
 	return ss
 }
 
@@ -38,7 +38,7 @@ func (s *TokenService) GenerateRefreshToken(userId int, sessionID string) string
 		SessionId: sessionID,
 		UserId:    userId,
 	})
-	ss, _ := token.SignedString([]byte(viper.GetString("SECRET_KEY")))
+	ss, _ := token.SignedString([]byte(s.secretKey))
 	return ss
 }
 
@@ -62,6 +62,7 @@ func (s *TokenService) ParseToken(tokenString string) (*models.TokenClaims, erro
 	})
 
 	if err != nil {
+		logrus.Print(s.secretKey)
 		return nil, err
 	}
 

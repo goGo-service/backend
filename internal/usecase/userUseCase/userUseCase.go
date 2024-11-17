@@ -18,7 +18,7 @@ func NewUserUseCase(service *service.Service) *UserUseCase {
 }
 
 func (u *UserUseCase) GetUserById(c *gin.Context) (*models.User, error) {
-	userID, exists := c.Get("userID")
+	userID, exists := c.Get("UserId")
 	if !exists {
 		return nil, internal.AccessTokenRequiredError
 	}

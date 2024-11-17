@@ -52,6 +52,7 @@ func NewHandler(services *service.Service, redisClient *redis.Client, userUC Use
 	}
 }
 
+// TODO добавить проверку на почту при регистрации
 func (h *Handler) InitRoutes() *gin.Engine {
 	router := gin.New()
 	router.Use(h.mw.CORS())
@@ -62,7 +63,7 @@ func (h *Handler) InitRoutes() *gin.Engine {
 		auth.POST("/sign-in", h.signIn)
 		auth.GET("/logout", h.mw.Auth(), h.logout)
 		auth.GET("/redirect-url", h.redirectUrl)
-		auth.GET("/token/refresh", h.mw.Auth(), h.refreshToken)
+		auth.GET("/token/refresh", h.refreshToken)
 	}
 	router.GET("/profile", h.mw.Auth(), h.profile)
 	router.PATCH("/profile", h.mw.Auth(), h.editProfile)
