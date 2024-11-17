@@ -1,6 +1,7 @@
 package userUseCase
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/goGo-service/back/internal"
 	"github.com/goGo-service/back/internal/models"
@@ -17,15 +18,21 @@ func NewUserUseCase(service *service.Service) *UserUseCase {
 	}
 }
 
-func (u *UserUseCase) GetUserById(c *gin.Context) (*models.User, error) {
+func (u *UserUseCase) ExtractUserID(c *gin.Context) (int, error) {
 	userID, exists := c.Get("UserId")
 	if !exists {
-		return nil, internal.AccessTokenRequiredError
+		return 0, fmt.Errorf("user not found")
 	}
+
 	id, ok := userID.(int)
 	if !ok {
-		return nil, internal.InvalidUserIDError
+		return 0, fmt.Errorf("invalid user id")
 	}
+
+	return id, nil
+}
+
+func (u *UserUseCase) GetUserById(id int) (*models.User, error) {
 	user, err := u.services.User.GetUser(id)
 	if err != nil {
 		return nil, internal.InternalServiceError

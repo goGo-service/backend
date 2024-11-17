@@ -17,4 +17,5 @@ var (
 	InternalServiceError     = errors.New("internal service error")
 	UserNotFoundError        = errors.New("user not found")
 	InvalidUserIDError       = errors.New("invalid user id")
+	UserIDNotFoundError      = errors.New("user not found")
 )

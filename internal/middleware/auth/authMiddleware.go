@@ -2,6 +2,7 @@ package auth
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/goGo-service/back/internal/handler"
 	"github.com/goGo-service/back/internal/service"
 	"net/http"
 	"strings"
@@ -21,27 +22,21 @@ func (m *AuthMiddleware) Auth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header required"})
-			c.Abort()
-			return
-		}
-
-		if !strings.HasPrefix(authHeader, "Bearer ") {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token format"})
+			handler.NewErrorResponse(c, http.StatusUnauthorized, "Authorization header required")
 			c.Abort()
 			return
 		}
 
 		token := strings.TrimPrefix(authHeader, "Bearer ")
 		if token == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token is missing"})
+			handler.NewErrorResponse(c, http.StatusUnauthorized, "Token is missing")
 			c.Abort()
 			return
 		}
 
 		tokenClaims, err := m.services.Token.ParseToken(token)
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+			handler.NewErrorResponse(c, http.StatusUnauthorized, err.Error())
 			c.Abort()
 			return
 		}

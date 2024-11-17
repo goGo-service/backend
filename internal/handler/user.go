@@ -9,15 +9,16 @@ import (
 )
 
 func (h *Handler) profile(c *gin.Context) {
-	user, err := h.userUC.GetUserById(c)
+	id, _ := h.userUC.ExtractUserID(c)
+	user, err := h.userUC.GetUserById(id)
 	if err != nil {
 		switch {
 		case errors.Is(err, internal.AccessTokenRequiredError):
-			c.JSON(http.StatusBadRequest, gin.H{"error": "access token is required"})
+			NewErrorResponse(c, http.StatusBadRequest, err.Error())
 		case errors.Is(err, internal.InternalServiceError):
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			NewErrorResponse(c, http.StatusInternalServerError, err.Error())
 		case errors.Is(err, internal.UserNotFoundError):
-			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+			NewErrorResponse(c, http.StatusNotFound, err.Error())
 		}
 		return
 	}
@@ -34,30 +35,31 @@ func (h *Handler) profile(c *gin.Context) {
 
 func (h *Handler) editProfile(c *gin.Context) {
 	//TODO: ручка для изменения полей юзера
-	user, err := h.userUC.GetUserById(c)
+	id, _ := h.userUC.ExtractUserID(c)
+	user, err := h.userUC.GetUserById(id)
 	if err != nil {
 		switch {
 		case errors.Is(err, internal.AccessTokenRequiredError):
-			c.JSON(http.StatusBadRequest, gin.H{"error": "access token is required"})
+			NewErrorResponse(c, http.StatusBadRequest, err.Error())
 		case errors.Is(err, internal.InternalServiceError):
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			NewErrorResponse(c, http.StatusInternalServerError, err.Error())
 		case errors.Is(err, internal.UserNotFoundError):
-			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+			NewErrorResponse(c, http.StatusNotFound, err.Error())
 		}
 		return
 	}
 	var requestBody service.MutableUserFields
 	if err := c.ShouldBindJSON(&requestBody); err != nil {
-		newErrorResponse(c, http.StatusBadRequest, err.Error())
+		NewErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	_, err = h.userUC.UpdateUserFields(user, requestBody)
 
 	if err != nil {
-		newErrorResponse(c, http.StatusInternalServerError, err.Error())
+		NewErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "User updated successfully"})
+	NewErrorResponse(c, http.StatusOK, "User updated successfully")
 }

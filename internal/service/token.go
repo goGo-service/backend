@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/goGo-service/back/internal/models"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/sirupsen/logrus"
 	"time"
 )
 
@@ -62,7 +61,6 @@ func (s *TokenService) ParseToken(tokenString string) (*models.TokenClaims, erro
 	})
 
 	if err != nil {
-		logrus.Print(s.secretKey)
 		return nil, err
 	}
 
