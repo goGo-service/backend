@@ -11,6 +11,7 @@ import (
 	"github.com/goGo-service/back/internal/repository/cache"
 	"github.com/goGo-service/back/internal/service"
 	"github.com/goGo-service/back/internal/usecase/authUseCase"
+	"github.com/goGo-service/back/internal/usecase/roomUseCase"
 	"github.com/goGo-service/back/internal/usecase/userUseCase"
 	"github.com/goGo-service/back/internal/usecase/vkidUseCase"
 	"github.com/jmoiron/sqlx"
@@ -67,13 +68,14 @@ func main() {
 
 	repos := repository.NewRepository(db, redisClient)
 	services := service.NewService(repos)
+	mw := middleware.NewMiddlewareManager(auth.NewAuthMiddleware(services), security.NewCorsMiddleware())
 	// create usecases
 	authUC := authUseCase.NewAuthUseCase(services)
 	profileUC := userUseCase.NewUserUseCase(services)
 	vkidUC := vkidUseCase.NewVKIDUseCase(services)
-	mw := middleware.NewMiddlewareManager(auth.NewAuthMiddleware(services), security.NewCorsMiddleware())
+	roomUC := roomUseCase.NewRoomUseCase(services)
 
-	handlers := handler.NewHandler(services, redisClient, profileUC, authUC, vkidUC, mw)
+	handlers := handler.NewHandler(services, mw, redisClient, profileUC, authUC, vkidUC, roomUC)
 	srv := new(goGO.Server)
 
 	if err := srv.Run(viper.GetString("HOST_PORT"), handlers.InitRoutes()); err != nil {
