@@ -16,7 +16,6 @@ type UserUseCase interface {
 	GetUserById(id int) (*models.User, error)
 	GetUserByVkId(id int64) (*models.User, error)
 	CreateUser(user models.User) (int, error)
-	ExtractUserID(c *gin.Context) (int, error)
 	UpdateUserFields(user *models.User, updates service.MutableUserFields) (bool, error)
 }
 
