@@ -48,7 +48,7 @@ type Handler struct {
 	roomUC      RoomUseCase
 }
 
-func NewHandler(services *service.Service,mw Middleware, redisClient *redis.Client, userUC UserUseCase, authUC authUseCase, vkidUC VKIDUseCase, roomUC RoomUseCase) *Handler {
+func NewHandler(services *service.Service, mw Middleware, redisClient *redis.Client, userUC UserUseCase, authUC authUseCase, vkidUC VKIDUseCase, roomUC RoomUseCase) *Handler {
 	return &Handler{
 		services:    services,
 		redisClient: redisClient,
@@ -75,7 +75,7 @@ func (h *Handler) InitRoutes() *gin.Engine {
 	router.GET("/profile", h.mw.Auth(), h.profile)
 	router.PATCH("/profile", h.mw.Auth(), h.editProfile)
 
-	rooms := router.Group("/rooms")
+	rooms := router.Group("/rooms", h.mw.Auth())
 	{
 		rooms.POST("", h.createRoom)
 		rooms.GET("", h.getUserRooms)

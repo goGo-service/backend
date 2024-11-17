@@ -14,15 +14,24 @@ type createRoomRequest struct {
 func (h *Handler) createRoom(c *gin.Context) {
 	var requestBody createRoomRequest
 	if err := c.ShouldBindJSON(&requestBody); err != nil {
-		newErrorResponse(c, http.StatusBadRequest, "invalid request")
+		NewErrorResponse(c, http.StatusBadRequest, "invalid request")
 		return
 	}
 	var newRoom models.Room
 	newRoom.Name = requestBody.Name
 	newRoom.Settings = models.RoomSettings{Capacity: 8}
-	id, err := h.roomUC.CreateNewRoom(newRoom, 19) //TODO: доставать из контекста
+
+	userID, exists := c.Get("UserId")
+	if !exists {
+		NewErrorResponse(c, http.StatusBadRequest, "user not found")
+	}
+	uid, ok := userID.(int)
+	if !ok {
+		NewErrorResponse(c, http.StatusBadRequest, "invalid user id")
+	}
+	id, err := h.roomUC.CreateNewRoom(newRoom, uid) //TODO: доставать из контекста
 	if err != nil {
-		newErrorResponse(c, http.StatusInternalServerError, err.Error())
+		NewErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 	newRoom.Id = id
@@ -37,14 +46,24 @@ func (h *Handler) getRoom(c *gin.Context) {
 		return
 	}
 
-	room, err := h.roomUC.GetRoom(id, 19) //TODO: доставать из контекста
+	userID, exists := c.Get("UserId")
+	if !exists {
+		NewErrorResponse(c, http.StatusBadRequest, "user not found")
+		return
+	}
+	uid, ok := userID.(int)
+	if !ok {
+		NewErrorResponse(c, http.StatusBadRequest, "invalid user id")
+		return
+	}
+	room, err := h.roomUC.GetRoom(id, uid) //TODO: доставать из контекста
 	if err != nil {
-		newErrorResponse(c, http.StatusInternalServerError, err.Error())
+		NewErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 	//TODO: тут подумать, если нету прав или румы, по идее должно быть not access ошибка
 	if room == nil {
-		newErrorResponse(c, http.StatusNotFound, "Room not found")
+		NewErrorResponse(c, http.StatusNotFound, "Room not found")
 		return
 	}
 
@@ -52,9 +71,19 @@ func (h *Handler) getRoom(c *gin.Context) {
 }
 
 func (h *Handler) getUserRooms(c *gin.Context) {
-	rooms, err := h.roomUC.GetUserRooms(19) //TODO: доставать из контекста
+	userID, exists := c.Get("UserId")
+	if !exists {
+		NewErrorResponse(c, http.StatusBadRequest, "user not found")
+		return
+	}
+	uid, ok := userID.(int)
+	if !ok {
+		NewErrorResponse(c, http.StatusBadRequest, "invalid user id")
+		return
+	}
+	rooms, err := h.roomUC.GetUserRooms(uid) //TODO: доставать из контекста
 	if err != nil {
-		newErrorResponse(c, http.StatusInternalServerError, "internal error")
+		NewErrorResponse(c, http.StatusInternalServerError, "internal error")
 		return
 	}
 	var responseRooms []models.RoomResponse
