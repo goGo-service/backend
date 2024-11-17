@@ -3,6 +3,7 @@ package repository
 import (
 	"github.com/goGo-service/back/internal/models"
 	"github.com/goGo-service/back/internal/repository/cache"
+	"github.com/goGo-service/back/internal/repository/room"
 	"github.com/goGo-service/back/internal/repository/user"
 	"github.com/jmoiron/sqlx"
 	"github.com/redis/go-redis/v9"
@@ -13,6 +14,11 @@ type User interface {
 	GetUserByVkId(vkId int64) (*models.User, error)
 	GetUserById(userId int) (*models.User, error)
 	UpdateUser(user *models.User) error
+}
+
+type Room interface {
+	SaveRoom(room models.Room) (int, error)
+	SaveRoomUser(userId int, roomId int, roleId int) error
 }
 
 type Cache interface {
@@ -26,11 +32,13 @@ type Cache interface {
 type Repository struct {
 	User
 	Cache
+	Room
 }
 
 func NewRepository(db *sqlx.DB, cacheClient *redis.Client) *Repository {
 	return &Repository{
 		User:  user.NewUserPostgres(db),
+		Room:  room.NewRoomPostgres(db),
 		Cache: cache.NewRedisCache(cacheClient),
 	}
 }

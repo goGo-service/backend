@@ -29,10 +29,17 @@ type VKID interface {
 	GenerateStateAndCodeChallenge() (string, string, error)
 }
 
+type Room interface {
+	CreateRoom(room models.Room) (int, error)
+	AddOwnerToRoom(userId int, roomId int) error
+	GetRoom(id int) (*models.Room, error)
+}
+
 type Service struct {
 	User
 	Token
 	VKID
+	Room
 }
 
 func NewService(repos *repository.Repository) *Service {
@@ -40,5 +47,6 @@ func NewService(repos *repository.Repository) *Service {
 		User:  NewUserService(repos.User),
 		Token: NewTokenService(viper.GetString("SECRET_KEY")),
 		VKID:  NewVKIDService(repos.Cache),
+		Room:  NewRoomService(repos.Room),
 	}
 }

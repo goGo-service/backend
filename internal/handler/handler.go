@@ -32,23 +32,29 @@ type Middleware interface {
 	CORS() gin.HandlerFunc
 }
 
+type RoomUseCase interface {
+	CreateNewRoom(room models.Room, userId int) (int, error)
+}
+
 type Handler struct {
 	services    *service.Service
+	mw          Middleware
 	redisClient *redis.Client
 	authUC      authUseCase
 	userUC      UserUseCase
 	vkidUC      VKIDUseCase
-	mw          Middleware
+	roomUC      RoomUseCase
 }
 
-func NewHandler(services *service.Service, redisClient *redis.Client, userUC UserUseCase, authUC authUseCase, vkidUC VKIDUseCase, mw Middleware) *Handler {
+func NewHandler(services *service.Service, mw Middleware, redisClient *redis.Client, userUC UserUseCase, authUC authUseCase, vkidUC VKIDUseCase, roomUC RoomUseCase) *Handler {
 	return &Handler{
 		services:    services,
+		mw:          mw,
 		redisClient: redisClient,
 		userUC:      userUC,
 		authUC:      authUC,
 		vkidUC:      vkidUC,
-		mw:          mw,
+		roomUC:      roomUC,
 	}
 }
 
@@ -67,6 +73,8 @@ func (h *Handler) InitRoutes() *gin.Engine {
 	}
 	router.GET("/profile", h.mw.Auth(), h.profile)
 	router.PATCH("/profile", h.mw.Auth(), h.editProfile)
+
+	router.POST("/rooms", h.createRoom)
 
 	return router
 }
