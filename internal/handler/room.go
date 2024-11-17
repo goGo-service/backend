@@ -14,15 +14,24 @@ type createRoomRequest struct {
 func (h *Handler) createRoom(c *gin.Context) {
 	var requestBody createRoomRequest
 	if err := c.ShouldBindJSON(&requestBody); err != nil {
-		newErrorResponse(c, http.StatusBadRequest, "invalid request")
+		NewErrorResponse(c, http.StatusBadRequest, "invalid request")
 		return
 	}
 	var newRoom models.Room
 	newRoom.Name = requestBody.Name
 	newRoom.Settings = models.RoomSettings{Capacity: 8}
-	id, err := h.roomUC.CreateNewRoom(newRoom, 19) //TODO: доставать из контекста
+
+	userID, exists := c.Get("UserId")
+	if !exists {
+		NewErrorResponse(c, http.StatusBadRequest, "user not found")
+	}
+	uId, ok := userID.(int)
+	if !ok {
+		NewErrorResponse(c, http.StatusBadRequest, "invalid user id")
+	}
+	id, err := h.roomUC.CreateNewRoom(newRoom, uId) //TODO: доставать из контекста
 	if err != nil {
-		newErrorResponse(c, http.StatusInternalServerError, err.Error())
+		NewErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 	c.JSON(200, gin.H{
@@ -36,18 +45,26 @@ func (h *Handler) getRoom(c *gin.Context) {
 	idParam := c.Param("id")
 	id, err := strconv.Atoi(idParam)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid room ID"})
+		NewErrorResponse(c, http.StatusBadRequest, "Invalid room ID")
 		return
 	}
 
-	room, err := h.roomUC.GetRoom(id, 19) //TODO: доставать из контекста
+	userID, exists := c.Get("UserId")
+	if !exists {
+		NewErrorResponse(c, http.StatusBadRequest, "user not found")
+	}
+	uId, ok := userID.(int)
+	if !ok {
+		NewErrorResponse(c, http.StatusBadRequest, "invalid user id")
+	}
+	room, err := h.roomUC.GetRoom(id, uId) //TODO: доставать из контекста
 	if err != nil {
-		newErrorResponse(c, http.StatusInternalServerError, err.Error())
+		NewErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 	//TODO: тут подумать, если нету прав или румы, по идее должно быть not access ошибка
 	if room == nil {
-		newErrorResponse(c, http.StatusNotFound, "Room not found")
+		NewErrorResponse(c, http.StatusNotFound, "Room not found")
 		return
 	}
 

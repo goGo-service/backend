@@ -37,6 +37,7 @@ func (h *Handler) signUp(c *gin.Context) {
 		NewErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
+	// TODO добавить проверку на почту при регистрации
 	vkId, email, err := h.vkidUC.GetVKID(requestBody.Code)
 	if err != nil {
 		NewErrorResponse(c, http.StatusBadRequest, "invalid user_id")

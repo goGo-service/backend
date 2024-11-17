@@ -41,10 +41,9 @@ func (h *Handler) profile(c *gin.Context) {
 }
 
 func (h *Handler) editProfile(c *gin.Context) {
-	//TODO: ручка для изменения полей юзера
 	userID, exists := c.Get("UserId")
 	if !exists {
-		NewErrorResponse(c, http.StatusUnauthorized, "user not found")
+		NewErrorResponse(c, http.StatusBadRequest, "user not found")
 	}
 	id, ok := userID.(int)
 	if !ok {
