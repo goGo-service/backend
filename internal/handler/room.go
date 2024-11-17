@@ -20,15 +20,15 @@ func (h *Handler) createRoom(c *gin.Context) {
 	var newRoom models.Room
 	newRoom.Name = requestBody.Name
 	newRoom.Settings = models.RoomSettings{Capacity: 8}
-	id, err := h.roomUC.CreateNewRoom(newRoom, 19)
+	id, err := h.roomUC.CreateNewRoom(newRoom, 19) //TODO: доставать из контекста
 	if err != nil {
 		newErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 	c.JSON(200, gin.H{
-		"id":      id,
-		"name":    newRoom.Name,
-		"setting": newRoom.Settings,
+		"id":       id,
+		"name":     newRoom.Name,
+		"settings": newRoom.Settings,
 	})
 }
 
@@ -40,7 +40,7 @@ func (h *Handler) getRoom(c *gin.Context) {
 		return
 	}
 
-	room, err := h.roomUC.GetRoom(id, 19)
+	room, err := h.roomUC.GetRoom(id, 19) //TODO: доставать из контекста
 	if err != nil {
 		newErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
@@ -51,5 +51,9 @@ func (h *Handler) getRoom(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, room)
+	c.JSON(http.StatusOK, gin.H{
+		"id":       id,
+		"name":     room.Name,
+		"settings": room.Settings,
+	})
 }
