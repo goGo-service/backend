@@ -25,11 +25,8 @@ func (h *Handler) createRoom(c *gin.Context) {
 		newErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	c.JSON(200, gin.H{
-		"id":       id,
-		"name":     newRoom.Name,
-		"settings": newRoom.Settings,
-	})
+	newRoom.Id = id
+	c.JSON(http.StatusOK, newRoom.ToResponse())
 }
 
 func (h *Handler) getRoom(c *gin.Context) {
@@ -51,9 +48,21 @@ func (h *Handler) getRoom(c *gin.Context) {
 		return
 	}
 
+	c.JSON(http.StatusOK, room.ToResponse())
+}
+
+func (h *Handler) getUserRooms(c *gin.Context) {
+	rooms, err := h.roomUC.GetUserRooms(19) //TODO: доставать из контекста
+	if err != nil {
+		newErrorResponse(c, http.StatusInternalServerError, "internal error")
+		return
+	}
+	var responseRooms []models.RoomResponse
+	for _, room := range rooms {
+		responseRooms = append(responseRooms, *room.ToResponse()) // Вызов метода ToResponse
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"id":       id,
-		"name":     room.Name,
-		"settings": room.Settings,
+		"rooms": responseRooms,
 	})
 }

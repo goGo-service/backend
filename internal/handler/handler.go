@@ -35,6 +35,7 @@ type Middleware interface {
 type RoomUseCase interface {
 	CreateNewRoom(room models.Room, userId int) (int, error)
 	GetRoom(roomId int, userId int) (*models.Room, error)
+	GetUserRooms(userId int) ([]*models.Room, error)
 }
 
 type Handler struct {
@@ -74,8 +75,12 @@ func (h *Handler) InitRoutes() *gin.Engine {
 	router.GET("/profile", h.mw.Auth(), h.profile)
 	router.PATCH("/profile", h.mw.Auth(), h.editProfile)
 
-	router.POST("/rooms", h.createRoom)
-	router.GET("/rooms/:id", h.getRoom)
+	rooms := router.Group("/rooms")
+	{
+		rooms.POST("", h.createRoom)
+		rooms.GET("", h.getUserRooms)
+		rooms.GET("/:id", h.getRoom)
+	}
 
 	return router
 }

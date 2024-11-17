@@ -12,6 +12,29 @@
   ],
   "paths": {
     "/": {
+      "get": {
+        "description": "Получение комнат, в которых состоит пользователь",
+        "responses": {
+          "200": {
+            "description": "Массив комнат",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "rooms": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Room"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "post": {
         "description": "Создание комнаты",
         "responses": {

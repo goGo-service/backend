@@ -43,3 +43,7 @@ func (u *RoomUseCase) GetRoom(roomId int, userId int) (*models.Room, error) {
 
 	return room, nil
 }
+
+func (u *RoomUseCase) GetUserRooms(userId int) ([]*models.Room, error) {
+	return u.services.Room.GetUserRooms(userId)
+}

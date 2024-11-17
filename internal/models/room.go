@@ -15,6 +15,20 @@ type Room struct {
 	UpdatedAt time.Time    `db:"updated_at" json:"updated_at"`
 }
 
+type RoomResponse struct {
+	Id       int          `json:"id"`
+	Name     string       `json:"name"`
+	Settings RoomSettings `json:"settings"`
+}
+
+func (room *Room) ToResponse() *RoomResponse {
+	return &RoomResponse{
+		Id:       room.Id,
+		Name:     room.Name,
+		Settings: room.Settings,
+	}
+}
+
 type RoomSettings struct {
 	Capacity int `json:"capacity"`
 }
