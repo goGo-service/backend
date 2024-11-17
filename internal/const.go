@@ -9,7 +9,7 @@ const (
 	UsersTable      = "users"
 	roomsTable      = "rooms"
 	rolesTable      = "roles"
-	roomsUsersTable = "rooms_users"
+	RoomsUsersTable = "rooms_users"
 )
 
 var (
