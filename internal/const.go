@@ -5,10 +5,10 @@ import (
 )
 
 const (
-	vkIdUsersTable  = "vk_id_users"
+	VkIdUsersTable  = "vk_id_users"
 	UsersTable      = "users"
-	roomsTable      = "rooms"
-	rolesTable      = "roles"
+	RoomsTable      = "rooms"
+	RolesTable      = "roles"
 	RoomsUsersTable = "rooms_users"
 )
 

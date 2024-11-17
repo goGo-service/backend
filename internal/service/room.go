@@ -36,3 +36,7 @@ func (s *RoomService) HaveAccess(userId int, roomId int) (bool, error) {
 
 	return true, nil
 }
+
+func (s *RoomService) GetUserRooms(userID int) ([]*models.Room, error) {
+	return s.repo.FetchRoomsByUserId(userID)
+}

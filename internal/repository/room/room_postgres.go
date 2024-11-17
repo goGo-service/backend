@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/goGo-service/back/internal"
 	"github.com/goGo-service/back/internal/models"
 	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
@@ -91,4 +92,54 @@ func (r *Postgres) FetchRoomUser(userId int, roomId int) (*models.RoomUser, erro
 	}
 
 	return &roomUser, nil
+}
+
+func (r *Postgres) FetchRoomsByUserId(userId int) ([]*models.Room, error) {
+	query := fmt.Sprintf(`
+		SELECT r.id, r.name, r.settings, r.created_at, r.updated_at
+		FROM %s r
+		INNER JOIN %s ru ON ru.room_id = r.id
+		WHERE ru.user_id = $1
+	`, internal.RoomsTable, internal.RoomsUsersTable)
+
+	rows, err := r.db.Query(query, userId)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		fmt.Println("Error executing query:", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	var rooms []*models.Room
+
+	for rows.Next() {
+		var room models.Room
+		var roomSettings models.RoomSettings
+		err := rows.Scan(
+			&room.Id,
+			&room.Name,
+			&roomSettings,
+			&room.CreatedAt,
+			&room.UpdatedAt,
+		)
+		if err != nil {
+			fmt.Println("Error scanning row:", err)
+			return nil, err
+		}
+		room.Settings = roomSettings
+		rooms = append(rooms, &room)
+	}
+
+	if err := rows.Err(); err != nil {
+		fmt.Println("Error iterating rows:", err)
+		return nil, err
+	}
+
+	if len(rooms) == 0 {
+		return nil, nil
+	}
+
+	return rooms, nil
 }
