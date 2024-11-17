@@ -1,0 +1,11 @@
+{
+  "allowed_origins": [
+    "http://localhost:5173"
+  ],
+  "log_level": "debug",
+  "namespaces": [
+    {
+      "name": "room"
+    }
+  ]
+}

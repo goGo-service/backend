@@ -53,6 +53,16 @@ services:
     ports:
       - "8080:8080"
 
+  centrifugo:
+    image: centrifugo/centrifugo:v5.2.0
+    environment:
+      - CENTRIFUGO_API_KEY=${CENTRIFUGO_API_KEY}
+      - CENTRIFUGO_TOKEN_HMAC_SECRET_KEY=${CENTRIFUGO_TOKEN_HMAC_SECRET_KEY}
+    command: centrifugo -c config.json --swagger
+    volumes:
+      - ./centrifugo/config.json:/centrifugo/config.json
+    ports:
+      - "3000:8000"
 volumes:
   postgresdata:
     driver: local
