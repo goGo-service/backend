@@ -18,10 +18,21 @@ func (s *RoomService) CreateRoom(room models.Room) (int, error) {
 }
 
 func (s *RoomService) GetRoom(id int) (*models.Room, error) {
-	//TODO: implement me
-	panic("implement me")
+	return s.repo.FetchRoomById(id)
 }
 
 func (s *RoomService) AddOwnerToRoom(userId int, roomId int) error {
 	return s.repo.SaveRoomUser(userId, roomId, models.RoomOwner)
+}
+
+func (s *RoomService) HaveAccess(userId int, roomId int) (bool, error) {
+	roomUser, err := s.repo.FetchRoomUser(userId, roomId)
+	if err != nil {
+		return false, err
+	}
+	if roomUser == nil {
+		return false, nil
+	}
+
+	return true, nil
 }

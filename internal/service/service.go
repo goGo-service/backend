@@ -33,6 +33,7 @@ type Room interface {
 	CreateRoom(room models.Room) (int, error)
 	AddOwnerToRoom(userId int, roomId int) error
 	GetRoom(id int) (*models.Room, error)
+	HaveAccess(userId int, roomId int) (bool, error)
 }
 
 type Service struct {
