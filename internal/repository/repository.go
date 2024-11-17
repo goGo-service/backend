@@ -19,6 +19,8 @@ type User interface {
 type Room interface {
 	SaveRoom(room models.Room) (int, error)
 	SaveRoomUser(userId int, roomId int, roleId int) error
+	FetchRoomById(id int) (*models.Room, error)
+	FetchRoomUser(userId int, roomId int) (*models.RoomUser, error)
 }
 
 type Cache interface {

@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/goGo-service/back/internal/models"
 	"net/http"
+	"strconv"
 )
 
 type createRoomRequest struct {
@@ -29,4 +30,26 @@ func (h *Handler) createRoom(c *gin.Context) {
 		"name":    newRoom.Name,
 		"setting": newRoom.Settings,
 	})
+}
+
+func (h *Handler) getRoom(c *gin.Context) {
+	idParam := c.Param("id")
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid room ID"})
+		return
+	}
+
+	room, err := h.roomUC.GetRoom(id, 19)
+	if err != nil {
+		newErrorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	//TODO: тут подумать, если нету прав или румы, по идее должно быть not access ошибка
+	if room == nil {
+		newErrorResponse(c, http.StatusNotFound, "Room not found")
+		return
+	}
+
+	c.JSON(http.StatusOK, room)
 }

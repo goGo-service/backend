@@ -20,10 +20,67 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "": ""
+                  "$ref": "#/components/schemas/Room"
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/{id}": {
+      "get": {
+        "description": "Получить комнату по ID",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "ID комнаты"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Информация о комнате",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Room"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Комната не найдена"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "RoomSettings": {
+        "type": "object",
+        "properties": {
+          "capacity": {
+            "type": "number"
+          }
+        }
+      },
+      "Room": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "setting": {
+            "$ref": "#/components/schemas/RoomSettings"
           }
         }
       }
