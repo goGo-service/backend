@@ -4,7 +4,6 @@ import (
 	"github.com/goGo-service/back/internal"
 	"github.com/goGo-service/back/internal/models"
 	"github.com/goGo-service/back/internal/service"
-	"strings"
 )
 
 type UserUseCase struct {
@@ -17,24 +16,14 @@ func NewUserUseCase(service *service.Service) *UserUseCase {
 	}
 }
 
-func (u *UserUseCase) GetByAccessToken(authHeader string) (*models.User, error) {
-	accessToken := strings.Split(authHeader, " ")[1]
-
-	if accessToken == "" {
-		return nil, internal.AccessTokenRequiredError
-	}
-	tokenClaims, err := u.services.Token.ParseToken(accessToken)
-	if err != nil {
-		return nil, internal.AccessTokenRequiredError
-	}
-	user, err := u.services.User.GetUser(tokenClaims.UserId)
+func (u *UserUseCase) GetUserById(id int) (*models.User, error) {
+	user, err := u.services.User.GetUser(id)
 	if err != nil {
 		return nil, internal.InternalServiceError
 	}
 	if user == nil {
 		return nil, internal.UserNotFoundError
 	}
-
 	return user, nil
 }
 

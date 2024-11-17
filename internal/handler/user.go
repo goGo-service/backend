@@ -9,20 +9,23 @@ import (
 )
 
 func (h *Handler) profile(c *gin.Context) {
-	authHeader := c.GetHeader("Authorization")
-	if authHeader == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header is required"})
-		return
+	userID, exists := c.Get("UserId")
+	if !exists {
+		NewErrorResponse(c, http.StatusUnauthorized, "user not found")
 	}
-	user, err := h.userUC.GetByAccessToken(authHeader)
+	id, ok := userID.(int)
+	if !ok {
+		NewErrorResponse(c, http.StatusBadRequest, "invalid user id")
+	}
+	user, err := h.userUC.GetUserById(id)
 	if err != nil {
 		switch {
 		case errors.Is(err, internal.AccessTokenRequiredError):
-			c.JSON(http.StatusBadRequest, gin.H{"error": "access token is required"})
+			NewErrorResponse(c, http.StatusBadRequest, err.Error())
 		case errors.Is(err, internal.InternalServiceError):
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			NewErrorResponse(c, http.StatusInternalServerError, err.Error())
 		case errors.Is(err, internal.UserNotFoundError):
-			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+			NewErrorResponse(c, http.StatusNotFound, err.Error())
 		}
 		return
 	}
@@ -39,35 +42,38 @@ func (h *Handler) profile(c *gin.Context) {
 
 func (h *Handler) editProfile(c *gin.Context) {
 	//TODO: ручка для изменения полей юзера
-	authHeader := c.GetHeader("Authorization")
-	if authHeader == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header is required"})
-		return
+	userID, exists := c.Get("UserId")
+	if !exists {
+		NewErrorResponse(c, http.StatusUnauthorized, "user not found")
 	}
-	user, err := h.userUC.GetByAccessToken(authHeader)
+	id, ok := userID.(int)
+	if !ok {
+		NewErrorResponse(c, http.StatusBadRequest, "invalid user id")
+	}
+	user, err := h.userUC.GetUserById(id)
 	if err != nil {
 		switch {
 		case errors.Is(err, internal.AccessTokenRequiredError):
-			c.JSON(http.StatusBadRequest, gin.H{"error": "access token is required"})
+			NewErrorResponse(c, http.StatusBadRequest, err.Error())
 		case errors.Is(err, internal.InternalServiceError):
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			NewErrorResponse(c, http.StatusInternalServerError, err.Error())
 		case errors.Is(err, internal.UserNotFoundError):
-			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+			NewErrorResponse(c, http.StatusNotFound, err.Error())
 		}
 		return
 	}
 	var requestBody service.MutableUserFields
 	if err := c.ShouldBindJSON(&requestBody); err != nil {
-		newErrorResponse(c, http.StatusBadRequest, err.Error())
+		NewErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	_, err = h.userUC.UpdateUserFields(user, requestBody)
 
 	if err != nil {
-		newErrorResponse(c, http.StatusInternalServerError, err.Error())
+		NewErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "User updated successfully"})
+	NewErrorResponse(c, http.StatusOK, "User updated successfully")
 }

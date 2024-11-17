@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/goGo-service/back/internal/models"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/spf13/viper"
 	"time"
 )
 
@@ -25,7 +24,7 @@ func (s *TokenService) GenerateAccessToken(userId int, sessionID string) string 
 		SessionId: sessionID,
 		UserId:    userId,
 	})
-	ss, _ := token.SignedString([]byte(viper.GetString("SECRET_KEY")))
+	ss, _ := token.SignedString([]byte(s.secretKey))
 	return ss
 }
 
@@ -38,7 +37,7 @@ func (s *TokenService) GenerateRefreshToken(userId int, sessionID string) string
 		SessionId: sessionID,
 		UserId:    userId,
 	})
-	ss, _ := token.SignedString([]byte(viper.GetString("SECRET_KEY")))
+	ss, _ := token.SignedString([]byte(s.secretKey))
 	return ss
 }
 

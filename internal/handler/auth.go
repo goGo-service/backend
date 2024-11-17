@@ -34,23 +34,23 @@ type SignUpRequestBody struct {
 func (h *Handler) signUp(c *gin.Context) {
 	var requestBody SignUpRequestBody
 	if err := c.ShouldBindJSON(&requestBody); err != nil {
-		newErrorResponse(c, http.StatusBadRequest, err.Error())
+		NewErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 	vkId, email, err := h.vkidUC.GetVKID(requestBody.Code)
 	if err != nil {
-		newErrorResponse(c, http.StatusBadRequest, "invalid user_id")
+		NewErrorResponse(c, http.StatusBadRequest, "invalid user_id")
 		return
 	}
 
 	user, err := h.userUC.GetUserByVkId(vkId) // проверим, вдруг такой юзер уже есть
 	if err != nil {
-		newErrorResponse(c, http.StatusInternalServerError, err.Error())
+		NewErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	if user != nil {
-		newErrorResponse(c, http.StatusConflict, "user already exist")
+		NewErrorResponse(c, http.StatusConflict, "user already exist")
 		return
 	}
 
@@ -62,7 +62,7 @@ func (h *Handler) signUp(c *gin.Context) {
 	input.Email = email
 	id, err := h.userUC.CreateUser(input)
 	if err != nil {
-		newErrorResponse(c, http.StatusInternalServerError, err.Error())
+		NewErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 	err = h.vkidUC.DeleteVKID(requestBody.Code)
@@ -72,7 +72,7 @@ func (h *Handler) signUp(c *gin.Context) {
 
 	tokenPair, err := h.authUC.Auth(id)
 	if err != nil {
-		newErrorResponse(c, http.StatusInternalServerError, err.Error())
+		NewErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 	//TODO: вынести все генерации ответов с токеном в одну функцию
@@ -106,13 +106,13 @@ func (h *Handler) signIn(c *gin.Context) {
 	}
 	id, vkidAT, err := h.vkidUC.GetUserIdAndAT(requestBody.Code, requestBody.DeviceId, requestBody.State)
 	if err != nil {
-		newErrorResponse(c, http.StatusBadRequest, "the provided request was invalid")
+		NewErrorResponse(c, http.StatusBadRequest, "the provided request was invalid")
 		return
 	}
 
 	user, err := h.userUC.GetUserByVkId(id)
 	if err != nil {
-		newErrorResponse(c, http.StatusInternalServerError, err.Error())
+		NewErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -136,7 +136,7 @@ func (h *Handler) signIn(c *gin.Context) {
 
 	token, err := h.authUC.Auth(user.Id)
 	if err != nil {
-		newErrorResponse(c, http.StatusInternalServerError, "internal server error")
+		NewErrorResponse(c, http.StatusInternalServerError, "internal server error")
 		return
 	}
 	http.SetCookie(c.Writer, &http.Cookie{
@@ -158,13 +158,13 @@ func (h *Handler) signIn(c *gin.Context) {
 func (h *Handler) refreshToken(c *gin.Context) {
 	cookie, err := c.Cookie("refresh_token")
 	if err != nil {
-		newErrorResponse(c, http.StatusBadRequest, "token is required")
+		NewErrorResponse(c, http.StatusBadRequest, "token is required")
 		return
 	}
 
 	tokens, err := h.authUC.RefreshToken(cookie)
 	if err != nil {
-		newErrorResponse(c, http.StatusBadRequest, "token expired or invalid")
+		NewErrorResponse(c, http.StatusBadRequest, "token expired or invalid")
 		return
 	}
 	http.SetCookie(c.Writer, &http.Cookie{
