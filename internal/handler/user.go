@@ -6,6 +6,7 @@ import (
 	"github.com/goGo-service/back/internal"
 	"github.com/goGo-service/back/internal/service"
 	"net/http"
+	"strconv"
 )
 
 func (h *Handler) profile(c *gin.Context) {
@@ -74,5 +75,32 @@ func (h *Handler) editProfile(c *gin.Context) {
 		return
 	}
 
-	NewErrorResponse(c, http.StatusOK, "User updated successfully")
+	c.JSON(http.StatusOK, "User updated successfully")
+}
+
+func (h *Handler) getUser(c *gin.Context) {
+	uId, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid room ID"})
+		return
+	}
+	user, err := h.userUC.GetUserById(uId)
+	if err != nil {
+		switch {
+		case errors.Is(err, internal.AccessTokenRequiredError):
+			NewErrorResponse(c, http.StatusBadRequest, err.Error())
+		case errors.Is(err, internal.InternalServiceError):
+			NewErrorResponse(c, http.StatusInternalServerError, err.Error())
+		case errors.Is(err, internal.UserNotFoundError):
+			NewErrorResponse(c, http.StatusNotFound, err.Error())
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"id":         user.Id,
+		"first_name": user.FirstName,
+		"last_name":  user.LastName,
+		"username":   user.Username,
+	})
 }

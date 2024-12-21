@@ -37,8 +37,12 @@ services:
     image: nginx:stable-alpine3.17-slim
     depends_on:
       - backend
+    environment:
+      - VITE_API_ENDPOINT_BASE=http://localhost:8000/api/v1
+      - VITE_WS_ENDPOINT=ws://localhost:8000
     volumes:
       - ./nginx:/etc/nginx/conf.d
+      - ./dist:/dist
     ports:
       - "8000:80"
 

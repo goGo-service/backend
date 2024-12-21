@@ -36,6 +36,8 @@ type RoomUseCase interface {
 	CreateNewRoom(room models.Room, userId int) (int, error)
 	GetRoom(roomId int, userId int) (*models.Room, error)
 	GetUserRooms(userId int) ([]*models.Room, error)
+	GetRoomPresence(userId int, roomId int) ([]*models.RoomUserPresence, error)
+	PublishMessage(userId int, roomId int, message string) error
 }
 
 type Handler struct {
@@ -63,23 +65,39 @@ func NewHandler(services *service.Service, mw Middleware, redisClient *redis.Cli
 func (h *Handler) InitRoutes() *gin.Engine {
 	router := gin.New()
 	router.Use(h.mw.CORS())
-
-	auth := router.Group("/auth")
+	router.GET("/api/callback", func(c *gin.Context) {
+		c.JSON(200, gin.H{})
+		return
+	})
+	router.POST("/api/callback", func(c *gin.Context) {
+		c.JSON(200, gin.H{})
+		return
+	})
+	auth := router.Group("/api/v1/auth")
 	{
 		auth.POST("/sign-up", h.signUp)
 		auth.POST("/sign-in", h.signIn)
 		auth.GET("/logout", h.mw.Auth(), h.logout)
 		auth.GET("/redirect-url", h.redirectUrl)
 		auth.GET("/token/refresh", h.refreshToken)
-	}
-	router.GET("/profile", h.mw.Auth(), h.profile)
-	router.PATCH("/profile", h.mw.Auth(), h.editProfile)
+		auth.GET("/token/connection", h.mw.Auth(), h.getConnToken)
 
-	rooms := router.Group("/rooms", h.mw.Auth())
+	}
+	users := router.Group("/api/v1/users", h.mw.Auth())
+	{
+		users.GET("/current", h.profile)
+		users.PATCH("/current", h.editProfile)
+		users.GET("/:id", h.getUser)
+	}
+
+	rooms := router.Group("/api/v1/rooms", h.mw.Auth())
 	{
 		rooms.POST("", h.createRoom)
 		rooms.GET("", h.getUserRooms)
 		rooms.GET("/:id", h.getRoom)
+		rooms.POST("/:id/message", h.mw.Auth(), h.roomMessage)
+		rooms.GET("/:id/presence", h.mw.Auth(), h.getPresence)
+		rooms.GET("/:id/token/subscription", h.mw.Auth(), h.getSubToken)
 	}
 
 	return router

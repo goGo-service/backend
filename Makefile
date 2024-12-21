@@ -3,3 +3,5 @@ up:
 
 down:
 	docker compose -f docker-compose.yaml down
+
+restart: down up

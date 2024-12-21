@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	goGO "github.com/goGo-service/back"
+	"github.com/goGo-service/back/apiproto"
+	"github.com/goGo-service/back/internal/adapter"
 	"github.com/goGo-service/back/internal/handler"
 	"github.com/goGo-service/back/internal/middleware"
 	"github.com/goGo-service/back/internal/middleware/auth"
@@ -19,6 +21,8 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"log"
 )
 
@@ -66,8 +70,21 @@ func main() {
 		}
 	}()
 
+	conn, err := grpc.NewClient("centrifugo:10000", grpc.WithTransportCredentials(insecure.NewCredentials())) //TODO: стоит вынести в env
+	if err != nil {
+		log.Fatalln(err)
+	}
+	defer func() {
+		err := conn.Close()
+		if err != nil {
+			log.Printf("error closing grpc Client Conn: %v", err)
+		}
+	}()
+
+	centrifugoClient := apiproto.NewCentrifugoApiClient(conn)
+
 	repos := repository.NewRepository(db, redisClient)
-	services := service.NewService(repos)
+	services := service.NewService(repos, adapter.NewCentrifugo(centrifugoClient))
 	mw := middleware.NewMiddlewareManager(auth.NewAuthMiddleware(services), security.NewCorsMiddleware())
 	// create usecases
 	authUC := authUseCase.NewAuthUseCase(services)

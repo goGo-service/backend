@@ -13,3 +13,14 @@ type TokenPair struct {
 	AccessToken  string
 	RefreshToken string
 }
+
+type SubTokenClaim struct {
+	jwt.RegisteredClaims
+	Sub     string `json:"sub"`
+	Channel string `json:"channel"`
+}
+
+type ConnTokenClaim struct {
+	jwt.RegisteredClaims
+	Sub string `json:"sub"`
+}

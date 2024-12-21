@@ -1,6 +1,7 @@
 package service
 
 import (
+	"github.com/goGo-service/back/internal/adapter"
 	"github.com/goGo-service/back/internal/models"
 	"github.com/goGo-service/back/internal/repository"
 	"github.com/spf13/viper"
@@ -30,11 +31,13 @@ type VKID interface {
 }
 
 type Room interface {
-	CreateRoom(room models.Room) (int, error)
+	CreateRoom(userId int, room models.Room) (int, error)
 	AddOwnerToRoom(userId int, roomId int) error
 	GetRoom(id int) (*models.Room, error)
 	HaveAccess(userId int, roomId int) (bool, error)
 	GetUserRooms(userID int) ([]*models.Room, error)
+	GetRoomPresence(roomId int) ([]int, error)
+	PublishMessage(userId int, roomId int, message string) error
 }
 
 type Service struct {
@@ -44,11 +47,11 @@ type Service struct {
 	Room
 }
 
-func NewService(repos *repository.Repository) *Service {
+func NewService(repos *repository.Repository, centrifugoClient *adapter.Client) *Service {
 	return &Service{
 		User:  NewUserService(repos.User),
 		Token: NewTokenService(viper.GetString("SECRET_KEY")),
 		VKID:  NewVKIDService(repos.Cache),
-		Room:  NewRoomService(repos.Room),
+		Room:  NewRoomService(repos.Room, centrifugoClient),
 	}
 }
